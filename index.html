@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>辗转南北的半生岁月 · 父亲回忆录</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #f6f0e4;
+  --parchment-deep: #e8dcc8;
+  --bark-dark: #4a3028;
+  --bark-mid: #6b4c3b;
+  --bark-light: #8b6f55;
+  --ring-warm: #c4a87c;
+  --ring-gold: #d4b87a;
+  --ring-active: #e8c97a;
+  --ink: #33281e;
+  --ink-soft: #5c4a3a;
+  --shadow-soft: rgba(74,48,40,0.12);
+  --shadow-deep: rgba(74,48,40,0.22);
+  --safe-bottom: env(safe-area-inset-bottom, 18px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100%;
+  overflow:hidden;
+  background: var(--parchment);
+  font-family: 'Noto Serif SC', 'STSong', 'Songti SC', serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.scene {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+}
+
+canvas {
+  display: block;
+  touch-action: manipulation;
+}
+
+.hint {
+  position: fixed; bottom: calc(var(--safe-bottom) + 60px);
+  left: 50%; transform: translateX(-50%);
+  font-size: 14px; letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.6s;
+  text-align: center;
+}
+
+.hint.fading { opacity: 0; }
+
+.page-title {
+  position: fixed; top: calc(env(safe-area-inset-top, 20px) + 20px);
+  left: 50%; transform: translateX(-50%);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 20px; font-weight: 300;
+  letter-spacing: 0.16em;
+  color: var(--bark-mid);
+  pointer-events: none; z-index: 5;
+  opacity: 0.7;
+}
+
+/* 回忆录文字卡片 */
+.text-card {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.5s;
+}
+.text-card.visible { pointer-events: auto; opacity: 1; }
+
+.text-card-inner {
+  background: linear-gradient(180deg, rgba(255,252,245,0.97), rgba(248,240,225,0.97));
+  border: 1px solid rgba(139,111,85,0.2);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  max-width: min(380px, 88vw);
+  max-height: 68vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 48px var(--shadow-deep), 0 2px 12px var(--shadow-soft);
+  -webkit-overflow-scrolling: touch;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.text-card-year {
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-size: 38px; font-weight: 300;
+  color: var(--bark-mid);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.text-card-title {
+  font-size: 20px; font-weight: 600;
+  color: var(--bark-dark);
+  margin-bottom: 16px;
+  letter-spacing: 0.06em;
+}
+
+.text-card-body {
+  font-size: 16px; line-height: 2;
+  color: var(--ink);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  white-space: pre-line;
+}
+
+.text-card-close {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 20px;
+  padding: 10px 22px;
+  background: var(--bark-mid);
+  color: #fff;
+  border: none; border-radius: 24px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px; letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.text-card-close:active { transform: scale(0.96); background: var(--bark-dark); }
+
+/* 音频播放指示器 */
+.audio-indicator {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 15; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px;
+  background: rgba(107,76,59,0.9);
+  border-radius: 24px;
+  color: #fff; font-size: 13px;
+  opacity: 0; transition: opacity 0.3s;
+  backdrop-filter: blur(10px);
+}
+.audio-indicator.visible { opacity: 1; }
+.audio-indicator .wave {
+  display: flex; gap: 2px; align-items: flex-end; height: 16px;
+}
+.audio-indicator .wave span {
+  width: 2px; background: var(--ring-active);
+  border-radius: 1px;
+  animation: wavePulse 0.6s ease-in-out infinite alternate;
+}
+.audio-indicator .wave span:nth-child(2) { animation-delay: 0.1s; }
+.audio-indicator .wave span:nth-child(3) { animation-delay: 0.2s; }
+.audio-indicator .wave span:nth-child(4) { animation-delay: 0.3s; }
+
+@keyframes wavePulse {
+  0% { height: 6px; }
+  100% { height: 16px; }
+}
+
+/* 淡出动画 */
+.card-scattering .text-card-inner {
+  animation: cardFadeOut 1s ease-out forwards;
+}
+@keyframes cardFadeOut {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.02) translateY(10px); }
+}
+</style>
+</head>
+<body>
+<div class="scene">
+  <canvas id="treeCanvas"></canvas>
+</div>
+<div class="page-title">辗转南北的半生岁月</div>
+<div class="hint" id="hint">轻触年轮 · 聆听父亲的故事</div>
+
+<div class="text-card" id="textCard">
+  <div class="text-card-inner" id="textCardInner">
+    <div class="text-card-year" id="cardYear"></div>
+    <div class="text-card-title" id="cardTitle"></div>
+    <div class="text-card-body" id="cardBody"></div>
+    <button class="text-card-close" id="cardClose">
+      <span>✧</span> 让记忆随风飘散
+    </button>
+  </div>
+</div>
+
+<div class="audio-indicator" id="audioIndicator">
+  <span>🎧</span>
+  <span id="audioLabel">播放中</span>
+  <div class="wave"><span></span><span></span><span></span><span></span></div>
+</div>
+<audio id="audioPlayer" preload="none"></audio>
+
+<script>
+/* ============================================================
+   回忆录数据 —— 修改这里的年份、文字和音频路径即可
+   ============================================================ */
+const MEMOIR_DATA = [
+  {
+    year: 1961,
+    title: "绍兴降生",
+    emoji: "🍼",
+    audio: "audio/memoir.mp3",
+    text: "都说六零后是建国后最特殊的一代人，而我就是六一年出生的人。1961年6月，母亲怀着即将出生的我，肚子上裹着长长的白布，从黑龙江牡丹江上车，坐了20多天火车，回到了老家绍兴东关。在德国人开办的教会医院红房子医院里，我幸运地呱呱坠地。\n\n初到东北，爸爸说我随母离开虎林远赴绍兴出生，经历颇为传奇，拟取名立虎。爷爷觉得虎字读音不雅，随定"立江"——意离开黑龙江去绍兴。我的名字赵立江，就此确定。"
+  },
+  {
+    year: 1963,
+    title: "扎根齐鲁",
+    emoji: "🏠",
+    audio: "audio/memoir.mp3",
+    text: "1963年前后，父亲带着全家搬迁落户山东临朐，我们一家人自此扎根齐鲁大地。\n\n父亲是五八年大裁军中，十万官兵集体转业开垦北大荒的北大荒人。母亲原籍江南苏州，祖居苏州桃花坞，七岁起随姥姥在绍兴东关长大。母亲难以忍受东北漫长严寒，常年冻伤生疮，加之姥姥已在东北病逝，父亲下定决心举家南迁。\n\n为此，父亲从副处级职务降为科级干部，先后辗转辛寨公社、七贤公社，最终定居柳山公社。"
+  },
+  {
+    year: 1967,
+    title: "柳山求学",
+    emoji: "📖",
+    audio: "audio/memoir.mp3",
+    text: "我的童年与少年时光全部在临朐柳山度过。先后就读柳山寨小学、柳山公社联合中学、临朐第八中学。\n\n我家紧挨柳山寨小学校园，年纪尚幼便被父亲送去求学。因年龄小几次被拒收，几经家长沟通协调，才得以在六七年冬天插班入校，时年六周岁。\n\n受学制改革影响，初中由冬季毕业改为夏季毕业，学制顺延半年。我前后读了九年半，是九年半义务教育的受益者。"
+  },
+  {
+    year: 1976,
+    title: "高中岁月",
+    emoji: "🎭",
+    audio: "audio/memoir.mp3",
+    text: "读书岁月恰逢特殊历史阶段。小学是文革初期，我们都是毛主席的红小兵。一年级班主任李师珍老师给我起了个"赵学东"的名字，意为随时认真学习毛泽东思想。\n\n初中时赶上批林批孔运动，我曾扮演"林秃子"，摇头晃脑阴阳怪气地说："悠悠万事，唯此为大，克己复礼！"同学们哄笑不已。我也曾参演学校排演的舞蹈剧《知识青年下乡来》。\n\n1976年9月9日，伟大领袖毛主席逝世。举国悲痛，万民哀伤。我就在高中大操场上参加悼念活动，记得中午时分大雨滂沱，电闪雷鸣。"
+  },
+  {
+    year: 1977,
+    title: "首届高考",
+    emoji: "✏️",
+    audio: "audio/memoir.mp3",
+    text: "1977年全国恢复高考，首届高考考试环境宽松。我自测考题难度适中，但数学科目出现课本未涉猎的知识点。彼时缺乏报考经验，盲目填报清华、北大、复旦等顶尖高校，最终遗憾落榜。\n\n说来也巧，开考前一天晚上和语文老师聊天，我说听说七贤公社出了一个作文题《最难忘的一天》。次日，第一次恢复高考的作文题目赫然是《难忘的一天》。年仅16的英俊少年惊得目瞪口呆。\n\n监考女老师走过来拍拍我的肩膀：小赵，别发愣，先答前面的，最后再写作文。"
+  },
+  {
+    year: 1978,
+    title: "工厂学艺",
+    emoji: "🔧",
+    audio: "audio/memoir.mp3",
+    text: "高考落榜后，我进入临朐县第一工具厂工作。工厂几经更名，先后改为临朐拖拉机厂、临朐石油机械厂，我在此踏实务工两年。\n\n1979年11月，临朐邮电局公开招录投递员。此前我已分配至临朐县财政局以工代干，在母亲的提议下，家里通过县劳动局调整工作去向，把我的人事关系调入县邮电局。彼时邮电岗前培训已经开课大半，我中途插班学习，短短数日便结业上岗。"
+  },
+  {
+    year: 1979,
+    title: "邮路漫漫",
+    emoji: "📬",
+    audio: "audio/memoir.mp3",
+    text: "结业后我被分配到蒋峪镇邮电支局，成为一名山区投递员，分管两条偏远山区邮路，一条百余华里，另一条148华里，隔日轮换出车。\n\n别的投递员两日轮休一次，我却几乎天天奔波在山间邮路上。\n\n入职不到一个月，当地降下罕见大雪，积雪深及膝盖。我身着棉靴照常外出走村送信，冒雪完成全线投递任务。这也是我邮电生涯中第一次踏雪送件。"
+  }
+];
+
+/* ============================================================
+   Canvas 初始化
+   ============================================================ */
+const canvas = document.getElementById('treeCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  computeTreeLayout();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+
+/* ============================================================
+   年轮树布局计算
+   ============================================================ */
+const tree = {
+  cx: 0, cy: 0,
+  totalRadius: 0,
+  ringWidth: 0,
+  rings: [],  // { innerR, outerR, data, midAngle }
+};
+
+function computeTreeLayout() {
+  const n = MEMOIR_DATA.length;
+  const maxR = Math.min(W, H) * 0.32;
+  const coreR = maxR * 0.12;
+  tree.totalRadius = maxR;
+  tree.cx = W / 2;
+  tree.cy = H / 2 - H * 0.04;
+  tree.ringWidth = (maxR - coreR) / n;
+
+  tree.rings = MEMOIR_DATA.map((data, i) => {
+    const innerR = coreR + i * tree.ringWidth;
+    const outerR = i === n - 1 ? maxR : coreR + (i + 1) * tree.ringWidth;
+    return { innerR, outerR, data, midR: (innerR + outerR) / 2 };
+  });
+}
+
+/* ============================================================
+   年轮树绘制
+   ============================================================ */
+function drawTreeBackground() {
+  // 树桩底色
+  const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, tree.totalRadius);
+  grad.addColorStop(0, '#e8d5b7');
+  grad.addColorStop(0.2, '#dcc8a4');
+  grad.addColorStop(0.6, '#c4a882');
+  grad.addColorStop(1, '#8b6f55');
+
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, tree.totalRadius + 4, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+function drawWoodGrain(innerR, outerR, seed) {
+  // 木质纹理细节
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
+  ctx.clip();
+
+  const step = 3;
+  for (let a = 0; a < Math.PI * 2; a += 0.04) {
+    const noise = Math.sin(a * 7 + seed) * 1.2 + Math.sin(a * 13 + seed * 1.7) * 0.6;
+    const r = innerR + (outerR - innerR) * 0.5 + noise;
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, r, a, a + 0.03);
+    ctx.strokeStyle = `rgba(74,48,40,${0.06 + Math.abs(noise) * 0.04})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRing(ring, state) {
+  const { innerR, outerR, data } = ring;
+
+  // 年轮颜色
+  const isActive = state === 'active';
+  const isHover = state === 'hover';
+  let baseColor, glowColor;
+
+  if (isActive) {
+    baseColor = '#e8c97a';
+    glowColor = 'rgba(232,201,122,0.6)';
+  } else if (isHover) {
+    baseColor = '#d4b87a';
+    glowColor = 'rgba(212,184,122,0.3)';
+  } else {
+    const t = ring.innerR / tree.totalRadius;
+    const r = 180 + Math.floor(t * 40);
+    const g = 150 + Math.floor(t * 20);
+    const b = 110 + Math.floor(t * 25);
+    baseColor = `rgb(${r},${g},${b})`;
+    glowColor = 'transparent';
+  }
+
+  // 年轮圈
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
+  ctx.fillStyle = baseColor;
+  ctx.fill();
+
+  // 发光效果
+  if (glowColor !== 'transparent') {
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+    ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
+    ctx.fillStyle = glowColor;
+    ctx.fill();
+
+    // 外发光
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, outerR + 3, 0, Math.PI * 2);
+    ctx.arc(tree.cx, tree.cy, innerR - 1, 0, Math.PI * 2, true);
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // 木纹
+  drawWoodGrain(innerR, outerR, data.year);
+
+  // 年轮边缘线
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(74,48,40,0.25)';
+  ctx.lineWidth = isActive ? 2 : 0.8;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(74,48,40,0.15)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+function drawBark() {
+  const outerR = tree.totalRadius;
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR + 2, 0, Math.PI * 2);
+  ctx.arc(tree.cx, tree.cy, outerR - 2, 0, Math.PI * 2, true);
+  ctx.fillStyle = '#5a3d2e';
+  ctx.fill();
+
+  // 树皮纹理
+  for (let a = 0; a < Math.PI * 2; a += 0.02) {
+    const irregular = Math.sin(a * 5.3) * 2 + Math.sin(a * 9.7) * 1.5 + Math.sin(a * 16) * 0.8;
+    const r = outerR + irregular;
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, r, a - 0.005, a + 0.015);
+    ctx.strokeStyle = `rgba(38,22,12,${0.4 + Math.abs(irregular) * 0.06})`;
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+  }
+
+  // 外圈勾勒
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(38,22,12,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawCoreRing() {
+  // 中心小圈（髓心）
+  const r = tree.rings.length > 0 ? tree.rings[0].innerR : 8;
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#d4c4a8';
+  ctx.fill();
+
+  // 中心裂缝细节
+  const cracks = 3;
+  for (let i = 0; i < cracks; i++) {
+    const a = (i / cracks) * Math.PI * 2 + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(tree.cx, tree.cy);
+    ctx.lineTo(tree.cx + Math.cos(a) * r * 0.9, tree.cy + Math.sin(a) * r * 0.9);
+    ctx.strokeStyle = 'rgba(74,48,40,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+}
+
+function drawYearLabels() {
+  tree.rings.forEach((ring, i) => {
+    const a = ring.midR > tree.totalRadius * 0.7 ? -0.35 : 0.35;
+    const r = ring.midR;
+    const x = tree.cx + Math.cos(a) * r;
+    const y = tree.cy + Math.sin(a) * r;
+
+    const isActive = app.activeRingIdx === i;
+    const isHover = app.hoveredRingIdx === i;
+
+    ctx.save();
+    ctx.font = `${isActive ? 11 : 9}px 'Cormorant Garamond', serif`;
+    ctx.fillStyle = isActive ? 'rgba(74,48,40,0.85)' : isHover ? 'rgba(74,48,40,0.6)' : 'rgba(74,48,40,0.35)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ring.data.year, x, y);
+    ctx.restore();
+  });
+}
+
+function drawHoverLabel() {
+  if (app.hoveredRingIdx === null || app.phase === 'reading') return;
+  const ring = tree.rings[app.hoveredRingIdx];
+  const r = ring.outerR + 28;
+  const x = tree.cx;
+  const y = tree.cy + tree.totalRadius + 42;
+
+  ctx.save();
+  ctx.font = '13px "Noto Serif SC", serif';
+  const text = `${ring.data.emoji} ${ring.data.title}`;
+  const m = ctx.measureText(text);
+  const pw = m.width + 20;
+  const ph = 30;
+
+  ctx.fillStyle = 'rgba(74,48,40,0.9)';
+  ctx.beginPath();
+  const rx2 = x - pw / 2, ry2 = y - ph / 2, rr = 16;
+  ctx.moveTo(rx2 + rr, ry2);
+  ctx.lineTo(rx2 + pw - rr, ry2);
+  ctx.arcTo(rx2 + pw, ry2, rx2 + pw, ry2 + rr, rr);
+  ctx.lineTo(rx2 + pw, ry2 + ph - rr);
+  ctx.arcTo(rx2 + pw, ry2 + ph, rx2 + pw - rr, ry2 + ph, rr);
+  ctx.lineTo(rx2 + rr, ry2 + ph);
+  ctx.arcTo(rx2, ry2 + ph, rx2, ry2 + ph - rr, rr);
+  ctx.lineTo(rx2, ry2 + rr);
+  ctx.arcTo(rx2, ry2, rx2 + rr, ry2, rr);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#f6f0e4';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function drawFallingLeaves(time) {
+  // 偶尔飘落的槐叶
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const leafX = tree.cx + Math.sin(time * 0.003 + i * 1.7) * tree.totalRadius * 1.6;
+    const leafY = ((time * 0.4 + i * 60) % (H + 40)) - 20;
+    const leafRot = time * 0.008 + i * 0.9;
+    const leafScale = 0.4 + (i % 3) * 0.3;
+
+    ctx.save();
+    ctx.translate(leafX, leafY);
+    ctx.rotate(leafRot);
+    ctx.scale(leafScale, leafScale);
+    ctx.globalAlpha = 0.25;
+
+    // 槐树叶形状
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 3.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#7a9a5a';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -3.5);
+    ctx.lineTo(0, 3.5);
+    ctx.strokeStyle = 'rgba(74,48,40,0.2)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   粒子飘散系统（复用飞走的情书核心逻辑）
+   ============================================================ */
+const particles = [];
+
+class Particle {
+  constructor(char, x, y, size) {
+    this.char = char;
+    this.x = x;
+    this.y = y;
+    this.homeX = x;
+    this.homeY = y;
+    this.size = size;
+    this.vx = (Math.random() - 0.5) * 2.0;
+    this.vy = -Math.random() * 2.5 - 0.8;
+    this.alpha = 1;
+    this.scale = 1;
+    this.rotation = 0;
+    this.omega = (Math.random() - 0.5) * 0.05;
+    this.wanderPhase = Math.random() * Math.PI * 2;
+    this.life = 1;
+  }
+
+  update(time) {
+    const wander = Math.sin(time * 0.025 + this.wanderPhase) * 0.15;
+    this.vx += wander * 0.02;
+    this.vy *= 0.992;
+    this.vx *= 0.988;
+    this.vy -= 0.004;
+
+    this.x += this.vx;
+    this.y += this.vy;
+    this.rotation += this.omega;
+    this.scale *= 0.996;
+    this.life -= 0.004;
+    this.alpha = Math.max(0, this.life);
+  }
+
+  draw(ctx) {
+    if (this.alpha <= 0.005) return;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.scale(this.scale, this.scale);
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = '#4a3028';
+    ctx.font = `300 ${this.size}px 'Noto Serif SC', serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(this.char, 0, 0);
+    ctx.restore();
+  }
+}
+
+function createScatterParticles(text) {
+  particles.length = 0;
+  const card = document.getElementById('textCardInner');
+  const rect = card.getBoundingClientRect();
+  const fontSize = 16;
+  const charsPerLine = Math.floor((rect.width - 48) / fontSize);
+  const lineHeight = fontSize * 2;
+
+  let cx = rect.left + 24;
+  let cy = rect.top + 60;
+  let charCount = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '\n' || charCount >= charsPerLine) {
+      cx = rect.left + 24;
+      cy += lineHeight;
+      charCount = 0;
+      if (ch === '\n') continue;
+    }
+    if (cy > rect.bottom - 60) break;
+
+    const px = cx + Math.random() * 4;
+    const py = cy + Math.random() * 4;
+    particles.push(new Particle(ch, px, py, fontSize));
+    cx += fontSize;
+    charCount++;
+  }
+}
+
+function clearScatter() {
+  // 移除残留的粒子
+  const alive = particles.filter(p => p.life > 0.005);
+  if (alive.length === 0) particles.length = 0;
+}
+
+/* ============================================================
+   应用状态管理
+   ============================================================ */
+const app = {
+  phase: 'idle',       // 'idle' | 'playing' | 'reading' | 'scattering'
+  activeRingIdx: null,
+  hoveredRingIdx: null,
+  scatterTime: 0,
+};
+
+/* ============================================================
+   音频播放
+   ============================================================ */
+const audioPlayer = document.getElementById('audioPlayer');
+const audioIndicator = document.getElementById('audioIndicator');
+const audioLabel = document.getElementById('audioLabel');
+
+function playAudio(ringIdx) {
+  const data = tree.rings[ringIdx].data;
+  if (!data.audio) {
+    // 无音频文件，直接显示文字
+    showReadingCard(ringIdx);
+    return;
+  }
+
+  audioPlayer.src = data.audio;
+  audioPlayer.currentTime = 0;
+
+  const playPromise = audioPlayer.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      app.phase = 'playing';
+      app.activeRingIdx = ringIdx;
+      audioIndicator.classList.add('visible');
+      audioLabel.textContent = `${data.year} · ${data.title}`;
+    }).catch(() => {
+      // 播放失败（如文件不存在），静默处理
+      app.phase = 'idle';
+      app.activeRingIdx = null;
+    });
+  }
+}
+
+function stopAudio() {
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0;
+  audioIndicator.classList.remove('visible');
+  app.phase = app.phase === 'playing' ? 'idle' : app.phase;
+  app.activeRingIdx = null;
+}
+
+audioPlayer.addEventListener('ended', () => {
+  audioIndicator.classList.remove('visible');
+  if (app.phase === 'playing') {
+    app.phase = 'idle';
+  }
+});
+
+audioPlayer.addEventListener('error', () => {
+  audioIndicator.classList.remove('visible');
+  app.phase = 'idle';
+  app.activeRingIdx = null;
+});
+
+/* ============================================================
+   文字卡片
+   ============================================================ */
+const textCard = document.getElementById('textCard');
+const cardYear = document.getElementById('cardYear');
+const cardTitle = document.getElementById('cardTitle');
+const cardBody = document.getElementById('cardBody');
+const cardClose = document.getElementById('cardClose');
+const hint = document.getElementById('hint');
+
+function showReadingCard(ringIdx) {
+  const data = tree.rings[ringIdx].data;
+  cardYear.textContent = data.year;
+  cardTitle.textContent = `${data.emoji} ${data.title}`;
+  cardBody.textContent = data.text;
+
+  textCard.classList.add('visible');
+  textCard.classList.remove('card-scattering');
+  textCard.querySelector('.text-card-inner').style.animation = 'none';
+  textCard.querySelector('.text-card-inner').offsetHeight;
+  textCard.querySelector('.text-card-inner').style.animation = '';
+
+  app.phase = 'reading';
+  hint.classList.add('fading');
+}
+
+function hideReadingCard(scatter = true) {
+  if (scatter && app.phase === 'reading') {
+    // 启动飘散效果
+    const text = cardBody.textContent;
+    createScatterParticles(text);
+    textCard.classList.add('card-scattering');
+    app.phase = 'scattering';
+    app.scatterTime = 0;
+  } else {
+    textCard.classList.remove('visible', 'card-scattering');
+    app.phase = 'idle';
+    hint.classList.remove('fading');
+  }
+}
+
+cardClose.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideReadingCard(true);
+});
+
+textCard.addEventListener('click', (e) => {
+  if (e.target === textCard) {
+    hideReadingCard(true);
+  }
+});
+
+/* ============================================================
+   交互处理（触摸+鼠标）
+   ============================================================ */
+function hitTestRing(px, py) {
+  const dx = px - tree.cx;
+  const dy = py - tree.cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > tree.totalRadius + 10 || dist < 2) return null;
+
+  // 从外向内查找（先匹配外层年轮）
+  for (let i = tree.rings.length - 1; i >= 0; i--) {
+    const ring = tree.rings[i];
+    if (dist >= ring.innerR - 2 && dist <= ring.outerR + 2) {
+      return i;
+    }
+  }
+  return null;
+}
+
+function handleTap(px, py) {
+  if (app.phase === 'scattering') return;
+  if (app.phase === 'reading') {
+    hideReadingCard(true);
+    return;
+  }
+
+  const ringIdx = hitTestRing(px, py);
+  if (ringIdx === null) return;
+
+  if (app.phase === 'playing' && app.activeRingIdx === ringIdx) {
+    // 正在播放此年轮 → 停止播放，显示文字
+    stopAudio();
+    showReadingCard(ringIdx);
+  } else if (app.activeRingIdx === ringIdx) {
+    // 再次点击已激活的年轮 → 显示文字
+    showReadingCard(ringIdx);
+  } else {
+    // 首次点击 → 播放音频
+    stopAudio();
+    playAudio(ringIdx);
+  }
+}
+
+function handleMove(px, py) {
+  if (app.phase === 'reading' || app.phase === 'scattering') {
+    app.hoveredRingIdx = null;
+    return;
+  }
+  const ringIdx = hitTestRing(px, py);
+  app.hoveredRingIdx = ringIdx;
+}
+
+// 触摸事件
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const t = e.touches[0];
+  handleTap(t.clientX, t.clientY);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const t = e.touches[0];
+  handleMove(t.clientX, t.clientY);
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  // 不变
+});
+
+// 鼠标事件（桌面调试用）
+canvas.addEventListener('mousedown', (e) => {
+  handleTap(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  handleMove(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('mouseleave', () => {
+  app.hoveredRingIdx = null;
+});
+
+/* ============================================================
+   动画主循环
+   ============================================================ */
+let time = 0;
+
+function animate() {
+  time++;
+  ctx.clearRect(0, 0, W, H);
+
+  // 绘制背景
+  drawTreeBackground();
+
+  // 绘制所有年轮
+  tree.rings.forEach((ring, i) => {
+    let state = 'normal';
+    if (i === app.activeRingIdx && (app.phase === 'playing' || app.phase === 'reading')) {
+      state = 'active';
+    } else if (i === app.hoveredRingIdx && app.phase === 'idle') {
+      state = 'hover';
+    }
+    drawRing(ring, state);
+  });
+
+  drawCoreRing();
+  drawBark();
+  drawYearLabels();
+
+  // 激活的年轮脉动效果
+  if (app.activeRingIdx !== null && app.phase === 'playing') {
+    const ring = tree.rings[app.activeRingIdx];
+    const pulse = Math.sin(time * 0.08) * 2 + 2;
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, ring.outerR + pulse, 0, Math.PI * 2);
+    ctx.arc(tree.cx, tree.cy, ring.innerR - pulse, 0, Math.PI * 2, true);
+    ctx.strokeStyle = `rgba(232,201,122,${0.2 + Math.abs(Math.sin(time * 0.08)) * 0.25})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  drawHoverLabel();
+  drawFallingLeaves(time);
+
+  // 粒子系统
+  if (app.phase === 'scattering') {
+    app.scatterTime++;
+    particles.forEach(p => {
+      p.update(time);
+      p.draw(ctx);
+    });
+
+    // 清除已消失的粒子
+    const aliveCount = particles.filter(p => p.life > 0.005).length;
+    if (aliveCount === 0 && app.scatterTime > 60) {
+      particles.length = 0;
+      textCard.classList.remove('visible', 'card-scattering');
+      app.phase = 'idle';
+      app.activeRingIdx = null;
+      app.scatterTime = 0;
+      hint.classList.remove('fading');
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+resize();
+animate();
+</script>
+</body>
+</html>
