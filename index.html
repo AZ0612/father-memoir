@@ -9,18 +9,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --parchment: #f6f0e4;
-  --parchment-deep: #e8dcc8;
-  --bark-dark: #4a3028;
-  --bark-mid: #6b4c3b;
-  --bark-light: #8b6f55;
-  --ring-warm: #c4a87c;
-  --ring-gold: #d4b87a;
-  --ring-active: #e8c97a;
-  --ink: #33281e;
-  --ink-soft: #5c4a3a;
-  --shadow-soft: rgba(74,48,40,0.12);
-  --shadow-deep: rgba(74,48,40,0.22);
+  --bg-deep: #0d0a06;
+  --bg-mid: #1a1308;
+  --bark-dark: #2a1c10;
+  --bark-mid: #4a3520;
+  --bark-light: #6b4c2b;
+  --ring-warm: #8a6a3a;
+  --ring-gold: #c4a050;
+  --ring-active: #f0c860;
+  --gold-glow: #ffd970;
+  --ink: #e8d5b0;
+  --ink-soft: #a89878;
+  --shadow-soft: rgba(0,0,0,0.4);
+  --shadow-deep: rgba(0,0,0,0.6);
   --safe-bottom: env(safe-area-inset-bottom, 18px);
 }
 
@@ -28,7 +29,7 @@
 html, body {
   width:100%; height:100%;
   overflow:hidden;
-  background: var(--parchment);
+  background: var(--bg-deep);
   font-family: 'Noto Serif SC', 'STSong', 'Songti SC', serif;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
@@ -39,8 +40,7 @@ html, body {
 
 body::before {
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E");
-  opacity: 0.5;
+  background: radial-gradient(ellipse at 50% 45%, rgba(60,40,15,0.4) 0%, transparent 70%);
 }
 
 .scene {
@@ -59,11 +59,12 @@ canvas {
   left: 50%; transform: translateX(-50%);
   font-size: 14px; letter-spacing: 0.12em;
   color: var(--ink-soft);
-  opacity: 0.8;
+  opacity: 0.7;
   pointer-events: none;
   z-index: 10;
   transition: opacity 0.6s;
   text-align: center;
+  text-shadow: 0 0 12px rgba(0,0,0,0.5);
 }
 
 .hint.fading { opacity: 0; }
@@ -74,9 +75,10 @@ canvas {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
   font-size: 20px; font-weight: 300;
   letter-spacing: 0.16em;
-  color: var(--bark-mid);
+  color: var(--ring-gold);
   pointer-events: none; z-index: 5;
-  opacity: 0.7;
+  opacity: 0.8;
+  text-shadow: 0 0 16px rgba(196,160,80,0.4);
 }
 
 /* 回忆录文字卡片 */
@@ -89,14 +91,14 @@ canvas {
 .text-card.visible { pointer-events: auto; opacity: 1; }
 
 .text-card-inner {
-  background: linear-gradient(180deg, rgba(255,252,245,0.97), rgba(248,240,225,0.97));
-  border: 1px solid rgba(139,111,85,0.2);
+  background: linear-gradient(180deg, rgba(30,22,12,0.96), rgba(20,14,6,0.96));
+  border: 1px solid rgba(196,160,80,0.25);
   border-radius: 16px;
   padding: 28px 24px 20px;
   max-width: min(380px, 88vw);
   max-height: 68vh;
   overflow-y: auto;
-  box-shadow: 0 12px 48px var(--shadow-deep), 0 2px 12px var(--shadow-soft);
+  box-shadow: 0 12px 48px var(--shadow-deep), 0 0 24px rgba(196,160,80,0.1);
   -webkit-overflow-scrolling: touch;
   font-family: 'Noto Serif SC', serif;
 }
@@ -104,14 +106,15 @@ canvas {
 .text-card-year {
   font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 38px; font-weight: 300;
-  color: var(--bark-mid);
+  color: var(--ring-active);
   line-height: 1;
   margin-bottom: 4px;
+  text-shadow: 0 0 12px rgba(240,200,96,0.3);
 }
 
 .text-card-title {
   font-size: 20px; font-weight: 600;
-  color: var(--bark-dark);
+  color: var(--ink);
   margin-bottom: 16px;
   letter-spacing: 0.06em;
 }
@@ -128,16 +131,17 @@ canvas {
   display: inline-flex; align-items: center; gap: 6px;
   margin-top: 20px;
   padding: 10px 22px;
-  background: var(--bark-mid);
-  color: #fff;
+  background: linear-gradient(135deg, #c4a050, #8a6a3a);
+  color: #1a1208;
   border: none; border-radius: 24px;
   font-family: 'Noto Serif SC', serif;
   font-size: 14px; letter-spacing: 0.1em;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.text-card-close:active { transform: scale(0.96); background: var(--bark-dark); }
+.text-card-close:active { transform: scale(0.96); }
 
 /* 音频播放指示器 */
 .audio-indicator {
@@ -145,9 +149,10 @@ canvas {
   z-index: 15; pointer-events: none;
   display: flex; align-items: center; gap: 8px;
   padding: 8px 20px;
-  background: rgba(107,76,59,0.9);
+  background: rgba(20,14,6,0.85);
+  border: 1px solid rgba(196,160,80,0.2);
   border-radius: 24px;
-  color: #fff; font-size: 13px;
+  color: var(--ring-active); font-size: 13px;
   opacity: 0; transition: opacity 0.3s;
   backdrop-filter: blur(10px);
 }
@@ -305,18 +310,20 @@ function computeTreeLayout() {
     const outerR = i === n - 1 ? maxR : coreR + (i + 1) * tree.ringWidth;
     return { innerR, outerR, data, midR: (innerR + outerR) / 2 };
   });
+
+  initRingParticles();
 }
 
 /* ============================================================
    年轮树绘制
    ============================================================ */
 function drawTreeBackground() {
-  // 树桩底色
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, tree.totalRadius);
-  grad.addColorStop(0, '#e8d5b7');
-  grad.addColorStop(0.2, '#dcc8a4');
-  grad.addColorStop(0.6, '#c4a882');
-  grad.addColorStop(1, '#8b6f55');
+  grad.addColorStop(0, '#3a2a15');
+  grad.addColorStop(0.15, '#2e2010');
+  grad.addColorStop(0.5, '#221800');
+  grad.addColorStop(0.85, '#1a1208');
+  grad.addColorStop(1, '#120c04');
 
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, tree.totalRadius + 4, 0, Math.PI * 2);
@@ -325,21 +332,19 @@ function drawTreeBackground() {
 }
 
 function drawWoodGrain(innerR, outerR, seed) {
-  // 木质纹理细节
   ctx.save();
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
   ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
   ctx.clip();
 
-  const step = 3;
-  for (let a = 0; a < Math.PI * 2; a += 0.04) {
-    const noise = Math.sin(a * 7 + seed) * 1.2 + Math.sin(a * 13 + seed * 1.7) * 0.6;
+  for (let a = 0; a < Math.PI * 2; a += 0.035) {
+    const noise = Math.sin(a * 7 + seed) * 1.5 + Math.sin(a * 13 + seed * 1.7) * 0.8 + Math.sin(a * 23 + seed * 0.5) * 0.4;
     const r = innerR + (outerR - innerR) * 0.5 + noise;
     ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, r, a, a + 0.03);
-    ctx.strokeStyle = `rgba(74,48,40,${0.06 + Math.abs(noise) * 0.04})`;
-    ctx.lineWidth = 0.5;
+    ctx.arc(tree.cx, tree.cy, r, a, a + 0.04);
+    ctx.strokeStyle = `rgba(80,52,20,${0.08 + Math.abs(noise) * 0.06})`;
+    ctx.lineWidth = 0.6;
     ctx.stroke();
   }
   ctx.restore();
@@ -347,65 +352,60 @@ function drawWoodGrain(innerR, outerR, seed) {
 
 function drawRing(ring, state) {
   const { innerR, outerR, data } = ring;
-
-  // 年轮颜色
   const isActive = state === 'active';
   const isHover = state === 'hover';
-  let baseColor, glowColor;
 
+  // 深色年轮底色
+  const t = ring.innerR / tree.totalRadius;
+  const baseR = 40 + Math.floor(t * 25);
+  const baseG = 28 + Math.floor(t * 15);
+  const baseB = 12 + Math.floor(t * 10);
+  let baseColor = `rgb(${baseR},${baseG},${baseB})`;
+
+  if (isHover) {
+    baseColor = `rgb(${baseR + 30},${baseG + 22},${baseB + 10})`;
+  }
   if (isActive) {
-    baseColor = '#e8c97a';
-    glowColor = 'rgba(232,201,122,0.6)';
-  } else if (isHover) {
-    baseColor = '#d4b87a';
-    glowColor = 'rgba(212,184,122,0.3)';
-  } else {
-    const t = ring.innerR / tree.totalRadius;
-    const r = 180 + Math.floor(t * 40);
-    const g = 150 + Math.floor(t * 20);
-    const b = 110 + Math.floor(t * 25);
-    baseColor = `rgb(${r},${g},${b})`;
-    glowColor = 'transparent';
+    baseColor = `rgb(${baseR + 60},${baseG + 45},${baseB + 15})`;
   }
 
-  // 年轮圈
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
   ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
   ctx.fillStyle = baseColor;
   ctx.fill();
 
-  // 发光效果
-  if (glowColor !== 'transparent') {
+  // 金色发光
+  if (isActive) {
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
     ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
-    ctx.fillStyle = glowColor;
+    ctx.fillStyle = 'rgba(240,200,96,0.18)';
     ctx.fill();
 
-    // 外发光
+    ctx.shadowColor = '#f0c860';
+    ctx.shadowBlur = 16;
     ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, outerR + 3, 0, Math.PI * 2);
-    ctx.arc(tree.cx, tree.cy, innerR - 1, 0, Math.PI * 2, true);
-    ctx.strokeStyle = glowColor;
-    ctx.lineWidth = 2;
+    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,217,112,0.5)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else if (isHover) {
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+    ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
+    ctx.fillStyle = 'rgba(196,160,80,0.08)';
+    ctx.fill();
   }
 
-  // 木纹
   drawWoodGrain(innerR, outerR, data.year);
 
-  // 年轮边缘线
+  // 年轮分界线
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(74,48,40,0.25)';
-  ctx.lineWidth = isActive ? 2 : 0.8;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(74,48,40,0.15)';
-  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = isActive ? 'rgba(255,217,112,0.3)' : 'rgba(100,68,30,0.4)';
+  ctx.lineWidth = isActive ? 1.5 : 0.7;
   ctx.stroke();
 }
 
@@ -414,44 +414,53 @@ function drawBark() {
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, outerR + 2, 0, Math.PI * 2);
   ctx.arc(tree.cx, tree.cy, outerR - 2, 0, Math.PI * 2, true);
-  ctx.fillStyle = '#5a3d2e';
+  ctx.fillStyle = '#1a0e04';
   ctx.fill();
 
-  // 树皮纹理
   for (let a = 0; a < Math.PI * 2; a += 0.02) {
     const irregular = Math.sin(a * 5.3) * 2 + Math.sin(a * 9.7) * 1.5 + Math.sin(a * 16) * 0.8;
     const r = outerR + irregular;
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, r, a - 0.005, a + 0.015);
-    ctx.strokeStyle = `rgba(38,22,12,${0.4 + Math.abs(irregular) * 0.06})`;
+    ctx.strokeStyle = `rgba(10,5,2,${0.5 + Math.abs(irregular) * 0.08})`;
     ctx.lineWidth = 0.7;
     ctx.stroke();
   }
 
-  // 外圈勾勒
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(38,22,12,0.5)';
+  ctx.strokeStyle = 'rgba(10,5,2,0.6)';
   ctx.lineWidth = 2;
   ctx.stroke();
 }
 
 function drawCoreRing() {
-  // 中心小圈（髓心）
   const r = tree.rings.length > 0 ? tree.rings[0].innerR : 8;
+
+  // 中心金色辉光
+  const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, r * 1.5);
+  grad.addColorStop(0, 'rgba(255,217,112,0.4)');
+  grad.addColorStop(0.5, 'rgba(196,160,80,0.15)');
+  grad.addColorStop(1, 'transparent');
   ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#d4c4a8';
+  ctx.arc(tree.cx, tree.cy, r * 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
   ctx.fill();
 
-  // 中心裂缝细节
+  // 髓心
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#4a3520';
+  ctx.fill();
+
+  // 中心裂缝
   const cracks = 3;
   for (let i = 0; i < cracks; i++) {
     const a = (i / cracks) * Math.PI * 2 + 0.5;
     ctx.beginPath();
     ctx.moveTo(tree.cx, tree.cy);
     ctx.lineTo(tree.cx + Math.cos(a) * r * 0.9, tree.cy + Math.sin(a) * r * 0.9);
-    ctx.strokeStyle = 'rgba(74,48,40,0.3)';
+    ctx.strokeStyle = 'rgba(10,5,2,0.4)';
     ctx.lineWidth = 0.8;
     ctx.stroke();
   }
@@ -468,10 +477,21 @@ function drawYearLabels() {
     const isHover = app.hoveredRingIdx === i;
 
     ctx.save();
-    ctx.font = `${isActive ? 11 : 9}px 'Cormorant Garamond', serif`;
-    ctx.fillStyle = isActive ? 'rgba(74,48,40,0.85)' : isHover ? 'rgba(74,48,40,0.6)' : 'rgba(74,48,40,0.35)';
+    ctx.font = `${isActive ? 12 : 10}px 'Cormorant Garamond', serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+
+    if (isActive) {
+      ctx.shadowColor = '#ffd970';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = 'rgba(255,217,112,0.95)';
+    } else if (isHover) {
+      ctx.shadowColor = '#c4a050';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = 'rgba(220,180,90,0.8)';
+    } else {
+      ctx.fillStyle = 'rgba(160,130,70,0.45)';
+    }
     ctx.fillText(ring.data.year, x, y);
     ctx.restore();
   });
@@ -480,7 +500,6 @@ function drawYearLabels() {
 function drawHoverLabel() {
   if (app.hoveredRingIdx === null || app.phase === 'reading') return;
   const ring = tree.rings[app.hoveredRingIdx];
-  const r = ring.outerR + 28;
   const x = tree.cx;
   const y = tree.cy + tree.totalRadius + 42;
 
@@ -491,7 +510,9 @@ function drawHoverLabel() {
   const pw = m.width + 20;
   const ph = 30;
 
-  ctx.fillStyle = 'rgba(74,48,40,0.9)';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = 'rgba(20,14,6,0.92)';
   ctx.beginPath();
   const rx2 = x - pw / 2, ry2 = y - ph / 2, rr = 16;
   ctx.moveTo(rx2 + rr, ry2);
@@ -505,8 +526,9 @@ function drawHoverLabel() {
   ctx.arcTo(rx2, ry2, rx2 + rr, ry2, rr);
   ctx.closePath();
   ctx.fill();
+  ctx.shadowBlur = 0;
 
-  ctx.fillStyle = '#f6f0e4';
+  ctx.fillStyle = '#f0c860';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y);
@@ -514,35 +536,116 @@ function drawHoverLabel() {
 }
 
 function drawFallingLeaves(time) {
-  // 偶尔飘落的槐叶
   ctx.save();
-  for (let i = 0; i < 5; i++) {
-    const leafX = tree.cx + Math.sin(time * 0.003 + i * 1.7) * tree.totalRadius * 1.6;
-    const leafY = ((time * 0.4 + i * 60) % (H + 40)) - 20;
-    const leafRot = time * 0.008 + i * 0.9;
-    const leafScale = 0.4 + (i % 3) * 0.3;
+  for (let i = 0; i < 8; i++) {
+    const px = tree.cx + Math.sin(time * 0.002 + i * 1.7) * tree.totalRadius * 1.8;
+    const py = ((time * 0.3 + i * 80) % (H + 40)) - 20;
+    const scale = 0.3 + (i % 4) * 0.25;
+    const flicker = 0.4 + Math.sin(time * 0.05 + i * 2) * 0.3;
 
     ctx.save();
-    ctx.translate(leafX, leafY);
-    ctx.rotate(leafRot);
-    ctx.scale(leafScale, leafScale);
-    ctx.globalAlpha = 0.25;
-
-    // 槐树叶形状
+    ctx.globalAlpha = flicker * 0.5;
+    ctx.shadowColor = '#ffd970';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#e8c97a';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 8, 3.5, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#7a9a5a';
+    ctx.arc(px, py, 1.2 * scale, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(0, -3.5);
-    ctx.lineTo(0, 3.5);
-    ctx.strokeStyle = 'rgba(74,48,40,0.2)';
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-
     ctx.restore();
   }
+  ctx.restore();
+}
+
+/* ============================================================
+   年轮金色粒子 + 光柱系统
+   ============================================================ */
+const ringParticles = [];
+
+function initRingParticles() {
+  ringParticles.length = 0;
+  tree.rings.forEach((ring, idx) => {
+    const count = 3 + idx % 3;
+    for (let i = 0; i < count; i++) {
+      ringParticles.push({
+        ringIdx: idx,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.0015 + Math.random() * 0.002,
+        size: 0.8 + Math.random() * 1.6,
+        alpha: 0.25 + Math.random() * 0.35,
+        phase: Math.random() * Math.PI * 2,
+        phaseSpeed: 0.03 + Math.random() * 0.04,
+      });
+    }
+  });
+}
+
+function drawLightRays(time) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const numRays = 8;
+  for (let i = 0; i < numRays; i++) {
+    const angle = (i / numRays) * Math.PI * 2 + time * 0.0003;
+    const halfWidth = 0.06;
+    const x1 = tree.cx + Math.cos(angle - halfWidth) * tree.totalRadius;
+    const y1 = tree.cy + Math.sin(angle - halfWidth) * tree.totalRadius;
+    const x2 = tree.cx + Math.cos(angle + halfWidth) * tree.totalRadius;
+    const y2 = tree.cy + Math.sin(angle + halfWidth) * tree.totalRadius;
+
+    const grad = ctx.createLinearGradient(tree.cx, tree.cy, x1, y1);
+    grad.addColorStop(0, 'rgba(255,200,80,0.06)');
+    grad.addColorStop(0.5, 'rgba(255,200,80,0.02)');
+    grad.addColorStop(1, 'transparent');
+
+    ctx.beginPath();
+    ctx.moveTo(tree.cx, tree.cy);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRingParticles(time) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ringParticles.forEach(p => {
+    p.angle += p.speed;
+    p.phase += p.phaseSpeed;
+    const ring = tree.rings[p.ringIdx];
+    if (!ring) return;
+
+    const isActive = p.ringIdx === app.activeRingIdx && (app.phase === 'playing' || app.phase === 'reading');
+    const isHover = p.ringIdx === app.hoveredRingIdx && app.phase === 'idle';
+
+    const r = ring.midR;
+    const x = tree.cx + Math.cos(p.angle) * r;
+    const y = tree.cy + Math.sin(p.angle) * r;
+    const flicker = 0.6 + Math.sin(p.phase) * 0.4;
+
+    let alpha = p.alpha * flicker;
+    let blur = 3;
+    let size = p.size;
+
+    if (isActive) {
+      alpha = Math.min(1, alpha * 2.2);
+      blur = 10;
+      size = p.size * 1.5;
+    } else if (isHover) {
+      alpha = Math.min(1, alpha * 1.6);
+      blur = 6;
+      size = p.size * 1.2;
+    }
+
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#ffd970';
+    ctx.shadowBlur = blur;
+    ctx.fillStyle = isActive ? '#fff0a0' : '#e8c97a';
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  });
   ctx.restore();
 }
 
@@ -844,10 +947,9 @@ function animate() {
   time++;
   ctx.clearRect(0, 0, W, H);
 
-  // 绘制背景
   drawTreeBackground();
+  drawLightRays(time);
 
-  // 绘制所有年轮
   tree.rings.forEach((ring, i) => {
     let state = 'normal';
     if (i === app.activeRingIdx && (app.phase === 'playing' || app.phase === 'reading')) {
@@ -861,15 +963,15 @@ function animate() {
   drawCoreRing();
   drawBark();
   drawYearLabels();
+  drawRingParticles(time);
 
-  // 激活的年轮脉动效果
   if (app.activeRingIdx !== null && app.phase === 'playing') {
     const ring = tree.rings[app.activeRingIdx];
     const pulse = Math.sin(time * 0.08) * 2 + 2;
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, ring.outerR + pulse, 0, Math.PI * 2);
     ctx.arc(tree.cx, tree.cy, ring.innerR - pulse, 0, Math.PI * 2, true);
-    ctx.strokeStyle = `rgba(232,201,122,${0.2 + Math.abs(Math.sin(time * 0.08)) * 0.25})`;
+    ctx.strokeStyle = `rgba(255,217,112,${0.2 + Math.abs(Math.sin(time * 0.08)) * 0.25})`;
     ctx.lineWidth = 2;
     ctx.stroke();
   }
