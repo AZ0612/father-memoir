@@ -338,15 +338,35 @@ function drawWoodGrain(innerR, outerR, seed) {
   ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
   ctx.clip();
 
-  for (let a = 0; a < Math.PI * 2; a += 0.035) {
-    const noise = Math.sin(a * 7 + seed) * 1.5 + Math.sin(a * 13 + seed * 1.7) * 0.8 + Math.sin(a * 23 + seed * 0.5) * 0.4;
-    const r = innerR + (outerR - innerR) * 0.5 + noise;
-    ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, r, a, a + 0.04);
-    ctx.strokeStyle = `rgba(80,52,20,${0.08 + Math.abs(noise) * 0.06})`;
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
+  // 多层木纹——密集细线模拟真实年轮纹理
+  for (let layer = 0; layer < 3; layer++) {
+    const layerOffset = layer * 0.33;
+    const density = 0.025 - layer * 0.005;
+    for (let a = 0; a < Math.PI * 2; a += density) {
+      const noise = Math.sin(a * (7 + layer * 3) + seed) * (1.5 - layer * 0.3)
+                  + Math.sin(a * (13 + layer * 5) + seed * 1.7) * (0.8 - layer * 0.15)
+                  + Math.sin(a * (23 + layer * 2) + seed * 0.5) * 0.4;
+      const r = innerR + (outerR - innerR) * (layerOffset + 0.15) + noise;
+      ctx.beginPath();
+      ctx.arc(tree.cx, tree.cy, r, a, a + 0.03);
+      ctx.strokeStyle = `rgba(70,45,18,${0.04 + Math.abs(noise) * 0.04})`;
+      ctx.lineWidth = 0.4;
+      ctx.stroke();
+    }
   }
+
+  // 年轮边界处的自然过渡带（替代硬线条）
+  const bandWidth = (outerR - innerR) * 0.08;
+  const bandGrad = ctx.createRadialGradient(tree.cx, tree.cy, outerR - bandWidth, tree.cx, tree.cy, outerR);
+  bandGrad.addColorStop(0, 'rgba(20,12,4,0)');
+  bandGrad.addColorStop(0.7, 'rgba(20,12,4,0.15)');
+  bandGrad.addColorStop(1, 'rgba(20,12,4,0)');
+  ctx.beginPath();
+  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+  ctx.arc(tree.cx, tree.cy, outerR - bandWidth, 0, Math.PI * 2, true);
+  ctx.fillStyle = bandGrad;
+  ctx.fill();
+
   ctx.restore();
 }
 
@@ -401,12 +421,14 @@ function drawRing(ring, state) {
 
   drawWoodGrain(innerR, outerR, data.year);
 
-  // 年轮分界线
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.strokeStyle = isActive ? 'rgba(255,217,112,0.3)' : 'rgba(100,68,30,0.4)';
-  ctx.lineWidth = isActive ? 1.5 : 0.7;
-  ctx.stroke();
+  // 极淡年轮分界——几乎不可见，靠木纹自然过渡
+  if (isActive) {
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,217,112,0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
 }
 
 function drawBark() {
@@ -659,31 +681,48 @@ class Particle {
     this.char = char;
     this.x = x;
     this.y = y;
-    this.homeX = x;
-    this.homeY = y;
     this.size = size;
-    this.vx = (Math.random() - 0.5) * 2.0;
-    this.vy = -Math.random() * 2.5 - 0.8;
+    // 向四周散开，微微向上
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.0 + Math.random() * 2.8;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed - 0.6;
     this.alpha = 1;
     this.scale = 1;
-    this.rotation = 0;
-    this.omega = (Math.random() - 0.5) * 0.05;
+    this.rotation = (Math.random() - 0.5) * 0.3;
+    this.omega = (Math.random() - 0.5) * 0.02;
     this.wanderPhase = Math.random() * Math.PI * 2;
     this.life = 1;
+    this.settled = false;
+    this.glowPhase = Math.random() * Math.PI * 2;
+    this.settleTime = 0;
   }
 
   update(time) {
-    const wander = Math.sin(time * 0.025 + this.wanderPhase) * 0.15;
-    this.vx += wander * 0.02;
-    this.vy *= 0.992;
-    this.vx *= 0.988;
-    this.vy -= 0.004;
+    if (!this.settled) {
+      const wander = Math.sin(time * 0.02 + this.wanderPhase) * 0.12;
+      this.vx += wander * 0.015;
+      this.vy *= 0.985;
+      this.vx *= 0.985;
+      this.vy -= 0.008;
+      this.x += this.vx;
+      this.y += this.vy;
+      this.rotation += this.omega;
 
-    this.x += this.vx;
-    this.y += this.vy;
-    this.rotation += this.omega;
-    this.scale *= 0.996;
-    this.life -= 0.004;
+      // 减速后定居在树桩上
+      const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (spd < 0.35 && this.life < 0.88) {
+        this.settled = true;
+        this.vx = 0; this.vy = 0; this.omega = 0;
+      }
+      this.life -= 0.0025;
+    } else {
+      this.glowPhase += 0.04;
+      this.settleTime++;
+      if (this.settleTime > 50) {
+        this.life -= 0.0015;
+      }
+    }
     this.alpha = Math.max(0, this.life);
   }
 
@@ -693,9 +732,12 @@ class Particle {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
     ctx.scale(this.scale, this.scale);
-    ctx.globalAlpha = this.alpha;
-    ctx.fillStyle = '#4a3028';
-    ctx.font = `300 ${this.size}px 'Noto Serif SC', serif`;
+    const twinkle = this.settled ? (0.55 + Math.sin(this.glowPhase) * 0.45) : 1;
+    ctx.globalAlpha = this.alpha * twinkle;
+    ctx.shadowColor = '#ffd970';
+    ctx.shadowBlur = this.settled ? 6 : 10;
+    ctx.fillStyle = '#ffe8a0';
+    ctx.font = `400 ${this.size}px 'Noto Serif SC', serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(this.char, 0, 0);
