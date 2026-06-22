@@ -55,29 +55,31 @@ canvas {
 }
 
 .hint {
-  position: fixed; bottom: calc(var(--safe-bottom) + 60px);
+  position: fixed; bottom: calc(var(--safe-bottom) + 50px);
   left: 50%; transform: translateX(-50%);
-  font-size: 14px; letter-spacing: 0.12em;
+  font-size: clamp(12px, 3.5vw, 14px); letter-spacing: 0.1em;
   color: var(--ink-soft);
   opacity: 0.7;
   pointer-events: none;
   z-index: 10;
   transition: opacity 0.6s;
   text-align: center;
+  white-space: nowrap;
   text-shadow: 0 0 12px rgba(0,0,0,0.5);
 }
 
 .hint.fading { opacity: 0; }
 
 .page-title {
-  position: fixed; top: calc(env(safe-area-inset-top, 20px) + 20px);
+  position: fixed; top: calc(env(safe-area-inset-top, 20px) + 16px);
   left: 50%; transform: translateX(-50%);
   font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
-  font-size: 20px; font-weight: 300;
-  letter-spacing: 0.16em;
+  font-size: clamp(15px, 4.5vw, 20px); font-weight: 300;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
   color: var(--ring-gold);
   pointer-events: none; z-index: 5;
-  opacity: 0.8;
+  opacity: 0.85;
   text-shadow: 0 0 16px rgba(196,160,80,0.4);
 }
 
@@ -94,9 +96,9 @@ canvas {
   background: linear-gradient(180deg, rgba(30,22,12,0.96), rgba(20,14,6,0.96));
   border: 1px solid rgba(196,160,80,0.25);
   border-radius: 16px;
-  padding: 28px 24px 20px;
-  max-width: min(380px, 88vw);
-  max-height: 68vh;
+  padding: 24px 20px 18px;
+  max-width: min(380px, 90vw);
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 12px 48px var(--shadow-deep), 0 0 24px rgba(196,160,80,0.1);
   -webkit-overflow-scrolling: touch;
@@ -105,7 +107,7 @@ canvas {
 
 .text-card-year {
   font-family: 'Cormorant Garamond', 'Georgia', serif;
-  font-size: 38px; font-weight: 300;
+  font-size: clamp(30px, 9vw, 38px); font-weight: 300;
   color: var(--ring-active);
   line-height: 1;
   margin-bottom: 4px;
@@ -113,14 +115,14 @@ canvas {
 }
 
 .text-card-title {
-  font-size: 20px; font-weight: 600;
+  font-size: clamp(17px, 5vw, 20px); font-weight: 600;
   color: var(--ink);
   margin-bottom: 16px;
   letter-spacing: 0.06em;
 }
 
 .text-card-body {
-  font-size: 16px; line-height: 2;
+  font-size: clamp(14px, 4.2vw, 16px); line-height: 2;
   color: var(--ink);
   font-weight: 300;
   letter-spacing: 0.04em;
@@ -298,11 +300,11 @@ const tree = {
 
 function computeTreeLayout() {
   const n = MEMOIR_DATA.length;
-  const maxR = Math.min(W, H) * 0.32;
+  const maxR = Math.min(W, H) * 0.35;
   const coreR = maxR * 0.12;
   tree.totalRadius = maxR;
   tree.cx = W / 2;
-  tree.cy = H / 2 - H * 0.04;
+  tree.cy = H * 0.5;
   tree.ringWidth = (maxR - coreR) / n;
 
   tree.rings = MEMOIR_DATA.map((data, i) => {
@@ -489,8 +491,10 @@ function drawCoreRing() {
 }
 
 function drawYearLabels() {
+  const total = tree.rings.length;
   tree.rings.forEach((ring, i) => {
-    const a = ring.midR > tree.totalRadius * 0.7 ? -0.35 : 0.35;
+    // 均匀分布在右侧 -0.75 ~ +0.75 弧度
+    const a = -0.75 + (i / (total - 1)) * 1.5;
     const r = ring.midR;
     const x = tree.cx + Math.cos(a) * r;
     const y = tree.cy + Math.sin(a) * r;
