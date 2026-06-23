@@ -314,12 +314,68 @@ function computeTreeLayout() {
     return { innerR, outerR, data, midR: (innerR + outerR) / 2 };
   });
 
+  computeRingPaths();
   initRingParticles();
 }
 
 /* ============================================================
-   年轮树绘制
+   年轮树绘制——不规则边界 + 深浅年轮带 + 放射木纹
    ============================================================ */
+
+// Perlin 噪声扭曲半径——让年轮边界呈有机波浪形
+function noisyRadius(baseR, angle, seed) {
+  const nx = Math.cos(angle);
+  const ny = Math.sin(angle);
+  const n1 = perlin(nx * 1.5 + seed, ny * 1.5 + seed, seed * 0.3) * 0.5 + 0.5;
+  const n2 = perlin(nx * 4 + seed * 2, ny * 4 + seed * 2, seed * 0.5) * 0.5 + 0.5;
+  const distortion = (n1 - 0.5) * baseR * 0.07 + (n2 - 0.5) * baseR * 0.025;
+  return Math.max(2, baseR + distortion);
+}
+
+// 缓存年轮路径（避免每帧重复计算 Perlin 噪声）
+let ringPathCache = [];
+let treeKnots = [];
+
+function computeRingPaths() {
+  ringPathCache = [];
+  treeKnots = [];
+  const steps = 90;
+  tree.rings.forEach((ring, idx) => {
+    const outer = [], inner = [], mid = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      outer.push({ a, r: noisyRadius(ring.outerR, a, ring.data.year + 0.7) });
+      inner.push({ a, r: noisyRadius(ring.innerR, a, ring.data.year) });
+      mid.push({ a, r: noisyRadius((ring.innerR + ring.outerR) * 0.5, a, ring.data.year + 0.3) });
+    }
+    ringPathCache.push({ outer, inner, mid });
+
+    // 在第3、5个年轮上各放一个节疤（树枝痕迹）
+    if (idx === 2 || idx === 4) {
+      const ka = ring.data.year * 0.7;
+      treeKnots.push({
+        x: tree.cx + Math.cos(ka) * ring.midR,
+        y: tree.cy + Math.sin(ka) * ring.midR,
+        rx: 3 + (ring.outerR - ring.innerR) * 0.25,
+        ry: 5 + (ring.outerR - ring.innerR) * 0.35,
+        angle: ka,
+      });
+    }
+  });
+}
+
+// 沿缓存的路径点描绘 Canvas 路径
+function tracePath(points) {
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const x = tree.cx + Math.cos(p.a) * p.r;
+    const y = tree.cy + Math.sin(p.a) * p.r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
 function drawTreeBackground() {
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, tree.totalRadius);
   grad.addColorStop(0, '#3a2a15');
@@ -328,48 +384,45 @@ function drawTreeBackground() {
   grad.addColorStop(0.85, '#1a1208');
   grad.addColorStop(1, '#120c04');
 
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, tree.totalRadius + 4, 0, Math.PI * 2);
+  // 用最外层年轮的不规则路径作为树桩外形
+  const lastCache = ringPathCache[ringPathCache.length - 1];
+  if (lastCache) {
+    tracePath(lastCache.outer);
+  } else {
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, tree.totalRadius + 4, 0, Math.PI * 2);
+  }
   ctx.fillStyle = grad;
   ctx.fill();
 }
 
-function drawWoodGrain(innerR, outerR, seed) {
+function drawWoodGrain(ring, cache) {
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
-  ctx.clip();
+  // 裁剪到年轮区域内
+  tracePath(cache.outer);
+  tracePath(cache.inner);
+  ctx.clip('evenodd');
 
-  // 多层木纹——密集细线模拟真实年轮纹理
-  for (let layer = 0; layer < 3; layer++) {
-    const layerOffset = layer * 0.33;
-    const density = 0.025 - layer * 0.005;
-    for (let a = 0; a < Math.PI * 2; a += density) {
-      const noise = Math.sin(a * (7 + layer * 3) + seed) * (1.5 - layer * 0.3)
-                  + Math.sin(a * (13 + layer * 5) + seed * 1.7) * (0.8 - layer * 0.15)
-                  + Math.sin(a * (23 + layer * 2) + seed * 0.5) * 0.4;
-      const r = innerR + (outerR - innerR) * (layerOffset + 0.15) + noise;
-      ctx.beginPath();
-      ctx.arc(tree.cx, tree.cy, r, a, a + 0.03);
-      ctx.strokeStyle = `rgba(70,45,18,${0.04 + Math.abs(noise) * 0.04})`;
-      ctx.lineWidth = 0.4;
-      ctx.stroke();
-    }
+  // 放射状木纹细线——从内圈到外圈，沿缓存路径点
+  const numLines = cache.outer.length - 1;
+  for (let i = 0; i < numLines; i++) {
+    // 随机跳过一些线，营造疏密不均
+    if (Math.sin(i * 7.3 + ring.data.year) < -0.25) continue;
+
+    const pIn = cache.inner[i];
+    const pOut = cache.outer[i];
+    const x1 = tree.cx + Math.cos(pIn.a) * pIn.r;
+    const y1 = tree.cy + Math.sin(pIn.a) * pIn.r;
+    const x2 = tree.cx + Math.cos(pOut.a) * pOut.r;
+    const y2 = tree.cy + Math.sin(pOut.a) * pOut.r;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = `rgba(45,28,8,${0.02 + Math.abs(Math.sin(i * 5.7 + ring.data.year)) * 0.05})`;
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
   }
-
-  // 年轮边界处的自然过渡带（替代硬线条）
-  const bandWidth = (outerR - innerR) * 0.08;
-  const bandGrad = ctx.createRadialGradient(tree.cx, tree.cy, outerR - bandWidth, tree.cx, tree.cy, outerR);
-  bandGrad.addColorStop(0, 'rgba(20,12,4,0)');
-  bandGrad.addColorStop(0.7, 'rgba(20,12,4,0.15)');
-  bandGrad.addColorStop(1, 'rgba(20,12,4,0)');
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.arc(tree.cx, tree.cy, outerR - bandWidth, 0, Math.PI * 2, true);
-  ctx.fillStyle = bandGrad;
-  ctx.fill();
-
   ctx.restore();
 }
 
@@ -377,115 +430,150 @@ function drawRing(ring, state) {
   const { innerR, outerR, data } = ring;
   const isActive = state === 'active';
   const isHover = state === 'hover';
+  const cacheIdx = tree.rings.indexOf(ring);
+  const cache = ringPathCache[cacheIdx];
+  if (!cache) return;
 
-  // 深色年轮底色
+  // 年轮底色——内心材深，外边材浅
   const t = ring.innerR / tree.totalRadius;
-  const baseR = 40 + Math.floor(t * 25);
-  const baseG = 28 + Math.floor(t * 15);
-  const baseB = 12 + Math.floor(t * 10);
+  const baseR = 42 + Math.floor(t * 22);
+  const baseG = 28 + Math.floor(t * 14);
+  const baseB = 12 + Math.floor(t * 8);
   let baseColor = `rgb(${baseR},${baseG},${baseB})`;
 
   if (isHover) {
-    baseColor = `rgb(${baseR + 30},${baseG + 22},${baseB + 10})`;
+    baseColor = `rgb(${baseR + 28},${baseG + 20},${baseB + 8})`;
   }
   if (isActive) {
-    baseColor = `rgb(${baseR + 60},${baseG + 45},${baseB + 15})`;
+    baseColor = `rgb(${baseR + 55},${baseG + 40},${baseB + 12})`;
   }
 
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
+  // 在两条波浪边界之间填充年轮色（even-odd 填充）
+  tracePath(cache.outer);
+  tracePath(cache.inner);
   ctx.fillStyle = baseColor;
-  ctx.fill();
+  ctx.fill('evenodd');
 
-  // 金色发光
+  // 晚材线——年轮外侧的深色窄带（真实年轮的标志特征）
+  tracePath(cache.outer);
+  ctx.strokeStyle = 'rgba(12,7,2,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 早材线——年轮中部的浅色细线
+  tracePath(cache.mid);
+  ctx.strokeStyle = 'rgba(95,62,26,0.16)';
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+
+  // 激活/悬停态发光
   if (isActive) {
-    ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-    ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
-    ctx.fillStyle = 'rgba(240,200,96,0.18)';
-    ctx.fill();
+    tracePath(cache.outer);
+    tracePath(cache.inner);
+    ctx.fillStyle = 'rgba(240,200,96,0.14)';
+    ctx.fill('evenodd');
 
+    tracePath(cache.outer);
     ctx.shadowColor = '#f0c860';
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
+    ctx.shadowBlur = 18;
     ctx.strokeStyle = 'rgba(255,217,112,0.5)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.shadowBlur = 0;
   } else if (isHover) {
+    tracePath(cache.outer);
+    tracePath(cache.inner);
+    ctx.fillStyle = 'rgba(196,160,80,0.06)';
+    ctx.fill('evenodd');
+  }
+
+  // 放射状木纹
+  drawWoodGrain(ring, cache);
+}
+
+function drawKnots() {
+  treeKnots.forEach(knot => {
+    ctx.save();
+    ctx.translate(knot.x, knot.y);
+    ctx.rotate(knot.angle);
+
+    // 节疤暗色中心
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, knot.rx);
+    grad.addColorStop(0, 'rgba(8,4,1,0.7)');
+    grad.addColorStop(0.6, 'rgba(20,12,4,0.35)');
+    grad.addColorStop(1, 'transparent');
     ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-    ctx.arc(tree.cx, tree.cy, innerR, 0, Math.PI * 2, true);
-    ctx.fillStyle = 'rgba(196,160,80,0.08)';
+    ctx.ellipse(0, 0, knot.rx, knot.ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
     ctx.fill();
-  }
 
-  drawWoodGrain(innerR, outerR, data.year);
-
-  // 极淡年轮分界——几乎不可见，靠木纹自然过渡
-  if (isActive) {
-    ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,217,112,0.25)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
+    ctx.restore();
+  });
 }
 
 function drawBark() {
-  const outerR = tree.totalRadius;
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR + 2, 0, Math.PI * 2);
-  ctx.arc(tree.cx, tree.cy, outerR - 2, 0, Math.PI * 2, true);
+  const lastCache = ringPathCache[ringPathCache.length - 1];
+  if (!lastCache) return;
+
+  // 树皮深色环
+  tracePath(lastCache.outer);
   ctx.fillStyle = '#1a0e04';
   ctx.fill();
 
-  for (let a = 0; a < Math.PI * 2; a += 0.02) {
-    const irregular = Math.sin(a * 5.3) * 2 + Math.sin(a * 9.7) * 1.5 + Math.sin(a * 16) * 0.8;
-    const r = outerR + irregular;
+  // 树皮竖纹——从外边缘向外延伸的不规则短线
+  for (let i = 0; i < lastCache.outer.length - 1; i++) {
+    const p = lastCache.outer[i];
+    const a = p.a;
+    const r1 = p.r;
+    const r2 = r1 + 2 + Math.abs(Math.sin(a * 7 + 2)) * 5;
+
     ctx.beginPath();
-    ctx.arc(tree.cx, tree.cy, r, a - 0.005, a + 0.015);
-    ctx.strokeStyle = `rgba(10,5,2,${0.5 + Math.abs(irregular) * 0.08})`;
-    ctx.lineWidth = 0.7;
+    ctx.moveTo(tree.cx + Math.cos(a) * r1, tree.cy + Math.sin(a) * r1);
+    ctx.lineTo(tree.cx + Math.cos(a) * r2, tree.cy + Math.sin(a) * r2);
+    ctx.strokeStyle = `rgba(8,4,1,${0.4 + Math.abs(Math.sin(a * 11)) * 0.3})`;
+    ctx.lineWidth = 0.8;
     ctx.stroke();
   }
 
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, outerR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(10,5,2,0.6)';
+  // 外缘暗色描边
+  tracePath(lastCache.outer);
+  ctx.strokeStyle = 'rgba(8,4,1,0.6)';
   ctx.lineWidth = 2;
   ctx.stroke();
 }
 
 function drawCoreRing() {
   const r = tree.rings.length > 0 ? tree.rings[0].innerR : 8;
+  const firstCache = ringPathCache[0];
 
   // 中心金色辉光
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, r * 1.5);
-  grad.addColorStop(0, 'rgba(255,217,112,0.4)');
-  grad.addColorStop(0.5, 'rgba(196,160,80,0.15)');
+  grad.addColorStop(0, 'rgba(255,217,112,0.35)');
+  grad.addColorStop(0.5, 'rgba(196,160,80,0.12)');
   grad.addColorStop(1, 'transparent');
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, r * 1.5, 0, Math.PI * 2);
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // 髓心
-  ctx.beginPath();
-  ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
+  // 髓心——不规则形状
+  if (firstCache) {
+    tracePath(firstCache.inner);
+  } else {
+    ctx.beginPath();
+    ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
+  }
   ctx.fillStyle = '#4a3520';
   ctx.fill();
 
-  // 中心裂缝
-  const cracks = 3;
+  // 中心放射裂缝
+  const cracks = 4;
   for (let i = 0; i < cracks; i++) {
     const a = (i / cracks) * Math.PI * 2 + 0.5;
     ctx.beginPath();
     ctx.moveTo(tree.cx, tree.cy);
-    ctx.lineTo(tree.cx + Math.cos(a) * r * 0.9, tree.cy + Math.sin(a) * r * 0.9);
-    ctx.strokeStyle = 'rgba(10,5,2,0.4)';
+    ctx.lineTo(tree.cx + Math.cos(a) * r * 0.85, tree.cy + Math.sin(a) * r * 0.85);
+    ctx.strokeStyle = 'rgba(10,5,2,0.45)';
     ctx.lineWidth = 0.8;
     ctx.stroke();
   }
@@ -1038,6 +1126,7 @@ function animate() {
   });
 
   drawCoreRing();
+  drawKnots();
   drawBark();
   drawYearLabels();
   drawRingParticles(time);
