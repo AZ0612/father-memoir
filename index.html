@@ -176,13 +176,14 @@ canvas {
   100% { height: 16px; }
 }
 
-/* 淡出动画 */
+/* 淡出动画——配合水流向下 */
 .card-scattering .text-card-inner {
-  animation: cardFadeOut 1s ease-out forwards;
+  animation: cardFadeOut 1.5s ease-in forwards;
 }
 @keyframes cardFadeOut {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.02) translateY(10px); }
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  60% { opacity: 0.3; transform: scale(1.01) translateY(15px); }
+  100% { opacity: 0; transform: scale(1.02) translateY(30px); }
 }
 </style>
 </head>
@@ -199,7 +200,7 @@ canvas {
     <div class="text-card-title" id="cardTitle"></div>
     <div class="text-card-body" id="cardBody"></div>
     <button class="text-card-close" id="cardClose">
-      <span>✧</span> 让记忆随风飘散
+      <span>✧</span> 让记忆如水流逝
     </button>
   </div>
 </div>
@@ -676,70 +677,57 @@ function drawRingParticles(time) {
 }
 
 /* ============================================================
-   粒子飘散系统（复用飞走的情书核心逻辑）
+   粒子流动系统——文字如水流缓缓淌下
    ============================================================ */
 const particles = [];
 
 class Particle {
-  constructor(char, x, y, size) {
+  constructor(char, x, y, size, rowIdx) {
     this.char = char;
     this.x = x;
     this.y = y;
+    this.startX = x;
+    this.startY = y;
     this.size = size;
-    // 向四周散开，微微向上
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.0 + Math.random() * 2.8;
-    this.vx = Math.cos(angle) * speed;
-    this.vy = Math.sin(angle) * speed - 0.6;
     this.alpha = 1;
-    this.scale = 1;
-    this.rotation = (Math.random() - 0.5) * 0.3;
-    this.omega = (Math.random() - 0.5) * 0.02;
-    this.wanderPhase = Math.random() * Math.PI * 2;
     this.life = 1;
-    this.settled = false;
-    this.glowPhase = Math.random() * Math.PI * 2;
-    this.settleTime = 0;
+    this.phase = Math.random() * Math.PI * 2;
+    this.flowSpeed = 0.5 + Math.random() * 0.7;
+    this.waveAmp = 5 + Math.random() * 10;
+    this.waveFreq = 0.01 + Math.random() * 0.008;
+    this.delay = rowIdx * 6 + Math.random() * 12;
+    this.age = 0;
+    this.vy = 0;
+    this.dist = 0;
   }
 
   update(time) {
-    if (!this.settled) {
-      const wander = Math.sin(time * 0.02 + this.wanderPhase) * 0.12;
-      this.vx += wander * 0.015;
-      this.vy *= 0.985;
-      this.vx *= 0.985;
-      this.vy -= 0.008;
-      this.x += this.vx;
-      this.y += this.vy;
-      this.rotation += this.omega;
+    this.age++;
+    if (this.age < this.delay) return;
 
-      // 减速后定居在树桩上
-      const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-      if (spd < 0.35 && this.life < 0.88) {
-        this.settled = true;
-        this.vx = 0; this.vy = 0; this.omega = 0;
-      }
-      this.life -= 0.0025;
-    } else {
-      this.glowPhase += 0.04;
-      this.settleTime++;
-      if (this.settleTime > 50) {
-        this.life -= 0.0015;
-      }
+    // 向下流淌，逐渐加速
+    this.vy += 0.018;
+    this.vy = Math.min(this.vy, this.flowSpeed * 1.6);
+    this.y += this.vy;
+
+    // 横向波动——像水流蜿蜒
+    this.dist = this.y - this.startY;
+    this.x = this.startX + Math.sin(this.dist * this.waveFreq + this.phase) * this.waveAmp;
+
+    // 流淌一段距离后逐渐消融
+    if (this.dist > 30) {
+      this.life -= 0.005;
     }
     this.alpha = Math.max(0, this.life);
   }
 
   draw(ctx) {
-    if (this.alpha <= 0.005) return;
+    if (this.alpha <= 0.005 || this.age < this.delay) return;
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotation);
-    ctx.scale(this.scale, this.scale);
-    const twinkle = this.settled ? (0.55 + Math.sin(this.glowPhase) * 0.45) : 1;
-    ctx.globalAlpha = this.alpha * twinkle;
+    ctx.globalAlpha = this.alpha;
     ctx.shadowColor = '#ffd970';
-    ctx.shadowBlur = this.settled ? 6 : 10;
+    ctx.shadowBlur = 8;
     ctx.fillStyle = '#ffe8a0';
     ctx.font = `400 ${this.size}px 'Noto Serif SC', serif`;
     ctx.textAlign = 'left';
@@ -753,27 +741,30 @@ function createScatterParticles(text) {
   particles.length = 0;
   const card = document.getElementById('textCardInner');
   const rect = card.getBoundingClientRect();
-  const fontSize = 16;
-  const charsPerLine = Math.floor((rect.width - 48) / fontSize);
+  const bodyEl = document.getElementById('cardBody');
+  const fontSize = parseInt(window.getComputedStyle(bodyEl).fontSize) || 16;
+  const charsPerLine = Math.floor((rect.width - 40) / fontSize);
   const lineHeight = fontSize * 2;
 
-  let cx = rect.left + 24;
-  let cy = rect.top + 60;
+  let cx = rect.left + 20;
+  let cy = rect.top + 55;
   let charCount = 0;
+  let rowIdx = 0;
 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === '\n' || charCount >= charsPerLine) {
-      cx = rect.left + 24;
+      cx = rect.left + 20;
       cy += lineHeight;
       charCount = 0;
+      rowIdx++;
       if (ch === '\n') continue;
     }
     if (cy > rect.bottom - 60) break;
 
-    const px = cx + Math.random() * 4;
-    const py = cy + Math.random() * 4;
-    particles.push(new Particle(ch, px, py, fontSize));
+    const px = cx + Math.random() * 3;
+    const py = cy + Math.random() * 3;
+    particles.push(new Particle(ch, px, py, fontSize, rowIdx));
     cx += fontSize;
     charCount++;
   }
