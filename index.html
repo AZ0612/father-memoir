@@ -285,6 +285,7 @@ function resize() {
   canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   computeTreeLayout();
+  buildStaticLayer();
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 300));
@@ -382,8 +383,8 @@ function computeRingPaths() {
     }
     fineRingCache.push({
       points,
-      lineWidth: 0.5 + Math.abs(Math.sin(i * 2.7)) * 0.7,
-      opacity: 0.25 + Math.abs(Math.sin(i * 1.3)) * 0.35,
+      lineWidth: 0.6 + Math.abs(Math.sin(i * 2.7)) * 0.8,
+      opacity: 0.3 + Math.abs(Math.sin(i * 1.3)) * 0.4,
     });
   }
 
@@ -423,12 +424,38 @@ function tracePath(points) {
   }
   ctx.closePath();
 }
+
+// 离屏画布——缓存静态元素（年轮底图、细密环线、裂纹、树皮等）
+let staticCanvas = null;
+
+function buildStaticLayer() {
+  if (!staticCanvas) staticCanvas = document.createElement('canvas');
+  staticCanvas.width = canvas.width;
+  staticCanvas.height = canvas.height;
+  const sCtx = staticCanvas.getContext('2d');
+  sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 临时切换 ctx 到离屏画布
+  const origCtx = ctx;
+  ctx = sCtx;
+
+  drawTreeBackground();
+  drawFineRings();
+  tree.rings.forEach(ring => drawRing(ring, 'normal'));
+  drawCracks();
+  drawCoreRing();
+  drawKnots();
+  drawBark();
+
+  ctx = origCtx;
+}
+
 function drawTreeBackground() {
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, tree.totalRadius);
-  grad.addColorStop(0, '#2a2a2a');
-  grad.addColorStop(0.3, '#1e1e1e');
-  grad.addColorStop(0.7, '#141414');
-  grad.addColorStop(1, '#0a0a0a');
+  grad.addColorStop(0, '#3a3a3a');
+  grad.addColorStop(0.3, '#2a2a2a');
+  grad.addColorStop(0.7, '#1a1a1a');
+  grad.addColorStop(1, '#0f0f0f');
 
   const lastCache = ringPathCache[ringPathCache.length - 1];
   if (lastCache) {
@@ -445,7 +472,7 @@ function drawTreeBackground() {
 function drawFineRings() {
   fineRingCache.forEach(ring => {
     tracePath(ring.points);
-    ctx.strokeStyle = `rgba(210,210,210,${ring.opacity})`;
+    ctx.strokeStyle = `rgba(230,230,230,${ring.opacity})`;
     ctx.lineWidth = ring.lineWidth;
     ctx.stroke();
   });
@@ -528,7 +555,10 @@ function drawRing(ring, state) {
     ctx.stroke();
   }
 
-  drawWoodGrain(ring, cache);
+  // 木纹仅在静态层绘制（normal 态），动态层跳过避免冗余
+  if (state === 'normal') {
+    drawWoodGrain(ring, cache);
+  }
 }
 
 function drawKnots() {
@@ -641,7 +671,7 @@ function drawYearLabels() {
       ctx.shadowBlur = 6;
       ctx.fillStyle = 'rgba(200,200,200,0.8)';
     } else {
-      ctx.fillStyle = 'rgba(160,160,160,0.6)';
+      ctx.fillStyle = 'rgba(190,190,190,0.7)';
     }
     ctx.fillText(ring.data.year, x, y);
     ctx.restore();
@@ -1148,24 +1178,23 @@ function animate() {
   time++;
   ctx.clearRect(0, 0, W, H);
 
-  drawTreeBackground();
-  drawFineRings();
+  // 一次性贴入静态层（年轮底图+细密环线+裂纹+树皮等）
+  if (staticCanvas) {
+    ctx.drawImage(staticCanvas, 0, 0, W, H);
+  }
+
+  // 仅绘制动态元素
   drawLightRays(time);
 
+  // 激活/悬停态叠加（静态层已画了 normal 态）
   tree.rings.forEach((ring, i) => {
-    let state = 'normal';
     if (i === app.activeRingIdx && (app.phase === 'playing' || app.phase === 'reading')) {
-      state = 'active';
+      drawRing(ring, 'active');
     } else if (i === app.hoveredRingIdx && app.phase === 'idle') {
-      state = 'hover';
+      drawRing(ring, 'hover');
     }
-    drawRing(ring, state);
   });
 
-  drawCracks();
-  drawCoreRing();
-  drawKnots();
-  drawBark();
   drawYearLabels();
   drawRingParticles(time);
 
@@ -1175,7 +1204,7 @@ function animate() {
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, ring.outerR + pulse, 0, Math.PI * 2);
     ctx.arc(tree.cx, tree.cy, ring.innerR - pulse, 0, Math.PI * 2, true);
-    ctx.strokeStyle = `rgba(255,255,255,${0.15 + Math.abs(Math.sin(time * 0.08)) * 0.2})`;
+    ctx.strokeStyle = `rgba(255,255,255,${0.2 + Math.abs(Math.sin(time * 0.08)) * 0.25})`;
     ctx.lineWidth = 2;
     ctx.stroke();
   }
