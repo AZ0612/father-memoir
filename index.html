@@ -9,19 +9,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg-deep: #0d0a06;
-  --bg-mid: #1a1308;
-  --bark-dark: #2a1c10;
-  --bark-mid: #4a3520;
-  --bark-light: #6b4c2b;
-  --ring-warm: #8a6a3a;
-  --ring-gold: #c4a050;
-  --ring-active: #f0c860;
-  --gold-glow: #ffd970;
-  --ink: #e8d5b0;
-  --ink-soft: #a89878;
-  --shadow-soft: rgba(0,0,0,0.4);
-  --shadow-deep: rgba(0,0,0,0.6);
+  --bg-deep: #050505;
+  --bg-mid: #0a0a0a;
+  --bark-dark: #111111;
+  --bark-mid: #1a1a1a;
+  --bark-light: #2a2a2a;
+  --ring-warm: #666666;
+  --ring-gold: #999999;
+  --ring-active: #e0e0e0;
+  --gold-glow: #ffffff;
+  --ink: #d0d0d0;
+  --ink-soft: #888888;
+  --shadow-soft: rgba(0,0,0,0.5);
+  --shadow-deep: rgba(0,0,0,0.7);
   --safe-bottom: env(safe-area-inset-bottom, 18px);
 }
 
@@ -40,7 +40,7 @@ html, body {
 
 body::before {
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(ellipse at 50% 45%, rgba(60,40,15,0.4) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 45%, rgba(40,40,40,0.3) 0%, transparent 70%);
 }
 
 .scene {
@@ -80,7 +80,7 @@ canvas {
   color: var(--ring-gold);
   pointer-events: none; z-index: 5;
   opacity: 0.85;
-  text-shadow: 0 0 16px rgba(196,160,80,0.4);
+  text-shadow: 0 0 16px rgba(180,180,180,0.3);
 }
 
 /* 回忆录文字卡片 */
@@ -93,14 +93,14 @@ canvas {
 .text-card.visible { pointer-events: auto; opacity: 1; }
 
 .text-card-inner {
-  background: linear-gradient(180deg, rgba(30,22,12,0.96), rgba(20,14,6,0.96));
-  border: 1px solid rgba(196,160,80,0.25);
+  background: linear-gradient(180deg, rgba(18,18,18,0.96), rgba(10,10,10,0.96));
+  border: 1px solid rgba(180,180,180,0.15);
   border-radius: 16px;
   padding: 24px 20px 18px;
   max-width: min(380px, 90vw);
   max-height: 70vh;
   overflow-y: auto;
-  box-shadow: 0 12px 48px var(--shadow-deep), 0 0 24px rgba(196,160,80,0.1);
+  box-shadow: 0 12px 48px var(--shadow-deep), 0 0 24px rgba(255,255,255,0.05);
   -webkit-overflow-scrolling: touch;
   font-family: 'Noto Serif SC', serif;
 }
@@ -111,7 +111,7 @@ canvas {
   color: var(--ring-active);
   line-height: 1;
   margin-bottom: 4px;
-  text-shadow: 0 0 12px rgba(240,200,96,0.3);
+  text-shadow: 0 0 12px rgba(255,255,255,0.2);
 }
 
 .text-card-title {
@@ -133,8 +133,8 @@ canvas {
   display: inline-flex; align-items: center; gap: 6px;
   margin-top: 20px;
   padding: 10px 22px;
-  background: linear-gradient(135deg, #c4a050, #8a6a3a);
-  color: #1a1208;
+  background: linear-gradient(135deg, #999999, #555555);
+  color: #0a0a0a;
   border: none; border-radius: 24px;
   font-family: 'Noto Serif SC', serif;
   font-size: 14px; letter-spacing: 0.1em;
@@ -151,8 +151,8 @@ canvas {
   z-index: 15; pointer-events: none;
   display: flex; align-items: center; gap: 8px;
   padding: 8px 20px;
-  background: rgba(20,14,6,0.85);
-  border: 1px solid rgba(196,160,80,0.2);
+  background: rgba(10,10,10,0.85);
+  border: 1px solid rgba(180,180,180,0.15);
   border-radius: 24px;
   color: var(--ring-active); font-size: 13px;
   opacity: 0; transition: opacity 0.3s;
@@ -334,12 +334,18 @@ function noisyRadius(baseR, angle, seed) {
 
 // 缓存年轮路径（避免每帧重复计算 Perlin 噪声）
 let ringPathCache = [];
+let fineRingCache = [];
+let crackPaths = [];
 let treeKnots = [];
 
 function computeRingPaths() {
   ringPathCache = [];
+  fineRingCache = [];
+  crackPaths = [];
   treeKnots = [];
   const steps = 90;
+
+  // 7个数据年轮
   tree.rings.forEach((ring, idx) => {
     const outer = [], inner = [], mid = [];
     for (let i = 0; i <= steps; i++) {
@@ -350,7 +356,6 @@ function computeRingPaths() {
     }
     ringPathCache.push({ outer, inner, mid });
 
-    // 在第3、5个年轮上各放一个节疤（树枝痕迹）
     if (idx === 2 || idx === 4) {
       const ka = ring.data.year * 0.7;
       treeKnots.push({
@@ -362,6 +367,48 @@ function computeRingPaths() {
       });
     }
   });
+
+  // 细密装饰环线——指纹质感
+  const coreR = tree.totalRadius * 0.12;
+  const numFine = 55;
+  for (let i = 0; i < numFine; i++) {
+    const t = i / numFine;
+    const r = coreR + (tree.totalRadius - coreR) * t;
+    const points = [];
+    const seed = i * 0.45 + 0.3;
+    for (let j = 0; j <= steps; j++) {
+      const a = (j / steps) * Math.PI * 2;
+      points.push({ a, r: noisyRadius(r, a, seed) });
+    }
+    fineRingCache.push({
+      points,
+      lineWidth: 0.3 + Math.abs(Math.sin(i * 2.7)) * 0.5,
+      opacity: 0.08 + Math.abs(Math.sin(i * 1.3)) * 0.18,
+    });
+  }
+
+  // 白色裂纹——从中心向外辐射
+  const numCracks = 5;
+  for (let i = 0; i < numCracks; i++) {
+    const baseAngle = (i / numCracks) * Math.PI * 2 + Math.random() * 0.8;
+    const pts = [];
+    const segs = 28;
+    let angle = baseAngle;
+    for (let s = 0; s <= segs; s++) {
+      const t = s / segs;
+      const r = tree.totalRadius * t * (0.92 + Math.random() * 0.08);
+      angle += (Math.random() - 0.5) * 0.07;
+      pts.push({
+        x: tree.cx + Math.cos(angle) * r,
+        y: tree.cy + Math.sin(angle) * r,
+      });
+    }
+    crackPaths.push({
+      points: pts,
+      width: 0.6 + Math.random() * 1.4,
+      opacity: 0.2 + Math.random() * 0.2,
+    });
+  }
 }
 
 // 沿缓存的路径点描绘 Canvas 路径
@@ -378,13 +425,11 @@ function tracePath(points) {
 }
 function drawTreeBackground() {
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, tree.totalRadius);
-  grad.addColorStop(0, '#3a2a15');
-  grad.addColorStop(0.15, '#2e2010');
-  grad.addColorStop(0.5, '#221800');
-  grad.addColorStop(0.85, '#1a1208');
-  grad.addColorStop(1, '#120c04');
+  grad.addColorStop(0, '#1a1a1a');
+  grad.addColorStop(0.3, '#121212');
+  grad.addColorStop(0.7, '#0a0a0a');
+  grad.addColorStop(1, '#050505');
 
-  // 用最外层年轮的不规则路径作为树桩外形
   const lastCache = ringPathCache[ringPathCache.length - 1];
   if (lastCache) {
     tracePath(lastCache.outer);
@@ -396,17 +441,38 @@ function drawTreeBackground() {
   ctx.fill();
 }
 
+// 细密环线——指纹质感
+function drawFineRings() {
+  fineRingCache.forEach(ring => {
+    tracePath(ring.points);
+    ctx.strokeStyle = `rgba(180,180,180,${ring.opacity})`;
+    ctx.lineWidth = ring.lineWidth;
+    ctx.stroke();
+  });
+}
+
+// 白色裂纹——贯穿年轮
+function drawCracks() {
+  crackPaths.forEach(crack => {
+    ctx.beginPath();
+    ctx.moveTo(crack.points[0].x, crack.points[0].y);
+    for (let i = 1; i < crack.points.length; i++) {
+      ctx.lineTo(crack.points[i].x, crack.points[i].y);
+    }
+    ctx.strokeStyle = `rgba(255,255,255,${crack.opacity})`;
+    ctx.lineWidth = crack.width;
+    ctx.stroke();
+  });
+}
+
 function drawWoodGrain(ring, cache) {
   ctx.save();
-  // 裁剪到年轮区域内
   tracePath(cache.outer);
   tracePath(cache.inner);
   ctx.clip('evenodd');
 
-  // 放射状木纹细线——从内圈到外圈，沿缓存路径点
   const numLines = cache.outer.length - 1;
   for (let i = 0; i < numLines; i++) {
-    // 随机跳过一些线，营造疏密不均
     if (Math.sin(i * 7.3 + ring.data.year) < -0.25) continue;
 
     const pIn = cache.inner[i];
@@ -419,7 +485,7 @@ function drawWoodGrain(ring, cache) {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.strokeStyle = `rgba(45,28,8,${0.02 + Math.abs(Math.sin(i * 5.7 + ring.data.year)) * 0.05})`;
+    ctx.strokeStyle = `rgba(120,120,120,${0.015 + Math.abs(Math.sin(i * 5.7 + ring.data.year)) * 0.03})`;
     ctx.lineWidth = 0.4;
     ctx.stroke();
   }
@@ -427,67 +493,41 @@ function drawWoodGrain(ring, cache) {
 }
 
 function drawRing(ring, state) {
-  const { innerR, outerR, data } = ring;
   const isActive = state === 'active';
   const isHover = state === 'hover';
   const cacheIdx = tree.rings.indexOf(ring);
   const cache = ringPathCache[cacheIdx];
   if (!cache) return;
 
-  // 年轮底色——内心材深，外边材浅
-  const t = ring.innerR / tree.totalRadius;
-  const baseR = 42 + Math.floor(t * 22);
-  const baseG = 28 + Math.floor(t * 14);
-  const baseB = 12 + Math.floor(t * 8);
-  let baseColor = `rgb(${baseR},${baseG},${baseB})`;
-
-  if (isHover) {
-    baseColor = `rgb(${baseR + 28},${baseG + 20},${baseB + 8})`;
-  }
-  if (isActive) {
-    baseColor = `rgb(${baseR + 55},${baseG + 40},${baseB + 12})`;
-  }
-
-  // 在两条波浪边界之间填充年轮色（even-odd 填充）
+  // 数据年轮边界——白色高亮线
   tracePath(cache.outer);
-  tracePath(cache.inner);
-  ctx.fillStyle = baseColor;
-  ctx.fill('evenodd');
-
-  // 晚材线——年轮外侧的深色窄带（真实年轮的标志特征）
-  tracePath(cache.outer);
-  ctx.strokeStyle = 'rgba(12,7,2,0.55)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // 早材线——年轮中部的浅色细线
-  tracePath(cache.mid);
-  ctx.strokeStyle = 'rgba(95,62,26,0.16)';
-  ctx.lineWidth = 0.7;
-  ctx.stroke();
-
-  // 激活/悬停态发光
   if (isActive) {
-    tracePath(cache.outer);
-    tracePath(cache.inner);
-    ctx.fillStyle = 'rgba(240,200,96,0.14)';
-    ctx.fill('evenodd');
-
-    tracePath(cache.outer);
-    ctx.shadowColor = '#f0c860';
-    ctx.shadowBlur = 18;
-    ctx.strokeStyle = 'rgba(255,217,112,0.5)';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.shadowBlur = 0;
-  } else if (isHover) {
+
     tracePath(cache.outer);
     tracePath(cache.inner);
-    ctx.fillStyle = 'rgba(196,160,80,0.06)';
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fill('evenodd');
+  } else if (isHover) {
+    ctx.strokeStyle = 'rgba(220,220,220,0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    tracePath(cache.outer);
+    tracePath(cache.inner);
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fill('evenodd');
+  } else {
+    ctx.strokeStyle = 'rgba(200,200,200,0.18)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
   }
 
-  // 放射状木纹
   drawWoodGrain(ring, cache);
 }
 
@@ -497,10 +537,9 @@ function drawKnots() {
     ctx.translate(knot.x, knot.y);
     ctx.rotate(knot.angle);
 
-    // 节疤暗色中心
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, knot.rx);
-    grad.addColorStop(0, 'rgba(8,4,1,0.7)');
-    grad.addColorStop(0.6, 'rgba(20,12,4,0.35)');
+    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+    grad.addColorStop(0.6, 'rgba(20,20,20,0.3)');
     grad.addColorStop(1, 'transparent');
     ctx.beginPath();
     ctx.ellipse(0, 0, knot.rx, knot.ry, 0, 0, Math.PI * 2);
@@ -515,12 +554,10 @@ function drawBark() {
   const lastCache = ringPathCache[ringPathCache.length - 1];
   if (!lastCache) return;
 
-  // 树皮深色环
   tracePath(lastCache.outer);
-  ctx.fillStyle = '#1a0e04';
+  ctx.fillStyle = '#050505';
   ctx.fill();
 
-  // 树皮竖纹——从外边缘向外延伸的不规则短线
   for (let i = 0; i < lastCache.outer.length - 1; i++) {
     const p = lastCache.outer[i];
     const a = p.a;
@@ -530,14 +567,13 @@ function drawBark() {
     ctx.beginPath();
     ctx.moveTo(tree.cx + Math.cos(a) * r1, tree.cy + Math.sin(a) * r1);
     ctx.lineTo(tree.cx + Math.cos(a) * r2, tree.cy + Math.sin(a) * r2);
-    ctx.strokeStyle = `rgba(8,4,1,${0.4 + Math.abs(Math.sin(a * 11)) * 0.3})`;
+    ctx.strokeStyle = `rgba(0,0,0,${0.5 + Math.abs(Math.sin(a * 11)) * 0.3})`;
     ctx.lineWidth = 0.8;
     ctx.stroke();
   }
 
-  // 外缘暗色描边
   tracePath(lastCache.outer);
-  ctx.strokeStyle = 'rgba(8,4,1,0.6)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)';
   ctx.lineWidth = 2;
   ctx.stroke();
 }
@@ -546,24 +582,24 @@ function drawCoreRing() {
   const r = tree.rings.length > 0 ? tree.rings[0].innerR : 8;
   const firstCache = ringPathCache[0];
 
-  // 中心金色辉光
+  // 中心白色辉光
   const grad = ctx.createRadialGradient(tree.cx, tree.cy, 0, tree.cx, tree.cy, r * 1.5);
-  grad.addColorStop(0, 'rgba(255,217,112,0.35)');
-  grad.addColorStop(0.5, 'rgba(196,160,80,0.12)');
+  grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+  grad.addColorStop(0.5, 'rgba(180,180,180,0.1)');
   grad.addColorStop(1, 'transparent');
   ctx.beginPath();
   ctx.arc(tree.cx, tree.cy, r * 1.5, 0, Math.PI * 2);
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // 髓心——不规则形状
+  // 髓心
   if (firstCache) {
     tracePath(firstCache.inner);
   } else {
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, r, 0, Math.PI * 2);
   }
-  ctx.fillStyle = '#4a3520';
+  ctx.fillStyle = '#2a2a2a';
   ctx.fill();
 
   // 中心放射裂缝
@@ -573,8 +609,8 @@ function drawCoreRing() {
     ctx.beginPath();
     ctx.moveTo(tree.cx, tree.cy);
     ctx.lineTo(tree.cx + Math.cos(a) * r * 0.85, tree.cy + Math.sin(a) * r * 0.85);
-    ctx.strokeStyle = 'rgba(10,5,2,0.45)';
-    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 0.6;
     ctx.stroke();
   }
 }
@@ -597,15 +633,15 @@ function drawYearLabels() {
     ctx.textBaseline = 'middle';
 
     if (isActive) {
-      ctx.shadowColor = '#ffd970';
+      ctx.shadowColor = '#ffffff';
       ctx.shadowBlur = 12;
-      ctx.fillStyle = 'rgba(255,217,112,0.95)';
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
     } else if (isHover) {
-      ctx.shadowColor = '#c4a050';
+      ctx.shadowColor = '#aaaaaa';
       ctx.shadowBlur = 6;
-      ctx.fillStyle = 'rgba(220,180,90,0.8)';
+      ctx.fillStyle = 'rgba(200,200,200,0.8)';
     } else {
-      ctx.fillStyle = 'rgba(160,130,70,0.45)';
+      ctx.fillStyle = 'rgba(120,120,120,0.4)';
     }
     ctx.fillText(ring.data.year, x, y);
     ctx.restore();
@@ -627,7 +663,7 @@ function drawHoverLabel() {
 
   ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 12;
-  ctx.fillStyle = 'rgba(20,14,6,0.92)';
+  ctx.fillStyle = 'rgba(15,15,15,0.92)';
   ctx.beginPath();
   const rx2 = x - pw / 2, ry2 = y - ph / 2, rr = 16;
   ctx.moveTo(rx2 + rr, ry2);
@@ -643,7 +679,7 @@ function drawHoverLabel() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  ctx.fillStyle = '#f0c860';
+  ctx.fillStyle = '#e0e0e0';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y);
@@ -660,9 +696,9 @@ function drawFallingLeaves(time) {
 
     ctx.save();
     ctx.globalAlpha = flicker * 0.5;
-    ctx.shadowColor = '#ffd970';
+    ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 6;
-    ctx.fillStyle = '#e8c97a';
+    ctx.fillStyle = '#cccccc';
     ctx.beginPath();
     ctx.arc(px, py, 1.2 * scale, 0, Math.PI * 2);
     ctx.fill();
@@ -707,8 +743,8 @@ function drawLightRays(time) {
     const y2 = tree.cy + Math.sin(angle + halfWidth) * tree.totalRadius;
 
     const grad = ctx.createLinearGradient(tree.cx, tree.cy, x1, y1);
-    grad.addColorStop(0, 'rgba(255,200,80,0.06)');
-    grad.addColorStop(0.5, 'rgba(255,200,80,0.02)');
+    grad.addColorStop(0, 'rgba(255,255,255,0.04)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.015)');
     grad.addColorStop(1, 'transparent');
 
     ctx.beginPath();
@@ -754,9 +790,9 @@ function drawRingParticles(time) {
     }
 
     ctx.globalAlpha = alpha;
-    ctx.shadowColor = '#ffd970';
+    ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = blur;
-    ctx.fillStyle = isActive ? '#fff0a0' : '#e8c97a';
+    ctx.fillStyle = isActive ? '#ffffff' : '#bbbbbb';
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
@@ -846,9 +882,9 @@ class Particle {
     if (this.alpha <= 0.005 || this.age < this.delay) return;
     ctx.save();
     ctx.globalAlpha = this.alpha;
-    ctx.shadowColor = '#ffd970';
+    ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 6;
-    ctx.fillStyle = '#ffe8a0';
+    ctx.fillStyle = '#dddddd';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size * this.scale, 0, Math.PI * 2);
     ctx.fill();
@@ -1113,6 +1149,7 @@ function animate() {
   ctx.clearRect(0, 0, W, H);
 
   drawTreeBackground();
+  drawFineRings();
   drawLightRays(time);
 
   tree.rings.forEach((ring, i) => {
@@ -1125,6 +1162,7 @@ function animate() {
     drawRing(ring, state);
   });
 
+  drawCracks();
   drawCoreRing();
   drawKnots();
   drawBark();
@@ -1137,7 +1175,7 @@ function animate() {
     ctx.beginPath();
     ctx.arc(tree.cx, tree.cy, ring.outerR + pulse, 0, Math.PI * 2);
     ctx.arc(tree.cx, tree.cy, ring.innerR - pulse, 0, Math.PI * 2, true);
-    ctx.strokeStyle = `rgba(255,217,112,${0.2 + Math.abs(Math.sin(time * 0.08)) * 0.25})`;
+    ctx.strokeStyle = `rgba(255,255,255,${0.15 + Math.abs(Math.sin(time * 0.08)) * 0.2})`;
     ctx.lineWidth = 2;
     ctx.stroke();
   }
