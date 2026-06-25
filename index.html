@@ -272,7 +272,7 @@ const MEMOIR_DATA = [
    Canvas 初始化
    ============================================================ */
 const canvas = document.getElementById('treeCanvas');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d');
 let W, H, dpr;
 
 function resize() {
